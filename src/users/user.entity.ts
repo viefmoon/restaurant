@@ -1,13 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert, JoinTable, ManyToMany } from 'typeorm';
+import { Rol } from 'src/roles/rol.entity';
 import { hash } from 'bcrypt';
 
-enum Role {
-    Administrador = "Administrador",
-    Mesero = "Mesero",
-    Hamburguesas = "Hamburguesas",
-    Pizzas = "Pizzas",
-    Bar = "Bar"
-}
 
 @Entity({ name: 'users' })
 export class User {
@@ -24,12 +18,26 @@ export class User {
     @Column({ select: false })
     password: string;
 
-    @Column({
-        type: "enum",
-        enum: Role,
-        default: Role.Mesero
+    @Column({ nullable: true })
+    notification_token: string;
+    
+    @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+    created_at: Date;
+    
+    @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+    updated_at: Date;
+
+    @JoinTable({
+        name: 'user_has_roles',
+        joinColumn: {
+            name: 'id_user'
+        },
+        inverseJoinColumn: {
+            name: 'id_rol'
+        }
     })
-    role: Role;
+    @ManyToMany(() => Rol, (rol) => rol.users)
+    roles: Rol[];
 
     @BeforeInsert()
     async hashPassword() {
