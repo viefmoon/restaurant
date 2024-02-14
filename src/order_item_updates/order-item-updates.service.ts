@@ -1,12 +1,13 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { SelectedModifier } from './selected-modifier.entity';
+import { OrderItemUpdate } from './order-item-update.entity';
+
 @Injectable()
-export class SelectedModifiersService {
+export class OrderItemUpdatesService {
     constructor(
-        @InjectRepository(SelectedModifier)
-        private readonly selectedModifierRepository: Repository<SelectedModifier>,
+        @InjectRepository(OrderItemUpdate)
+        private readonly orderItemUpdateRepository: Repository<OrderItemUpdate>,
     ) {}
 
     // Métodos para crear, actualizar, eliminar y recuperar órdenes

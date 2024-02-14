@@ -1,16 +1,10 @@
-import { Controller, Get, Post, Body, Put, Delete, Param, ParseIntPipe } from '@nestjs/common';
-import { OrdersService } from './orders.service';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import { Controller } from '@nestjs/common';
+import { ModifiersService } from './modifiers.service';
 
-@Controller('orders')
-export class OrdersController {
-    constructor(private readonly ordersService: OrdersService) {}
+@Controller('modifiers')
+export class ModifiersController {
+    constructor(private readonly modifiersService: ModifiersService) {}
 
-    @Post()
-    create(@Body() createOrderDto: CreateOrderDto) {
-        // Implementación
-    }
-
-    // Implementa los métodos GET, PUT, DELETE basándote en los ejemplos anteriores
+    // Métodos para crear, actualizar, eliminar y recuperar modificadores se definirán aquí
 }
+

@@ -2,6 +2,9 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'ty
 import { Subcategory } from '../subcategories/subcategory.entity'
 import { ProductVariant } from '../product_variants/product-variant.entity'
 import { Modifier } from '../modifiers/modifier.entity'
+import { ProductObservation } from '../product_observations/product-observation.entity'
+import { PizzaFlavor } from '../pizza_flavors/pizza-flavor.entity'
+import { OrderItem } from '../order_items/order-item.entity'
 
 @Entity({ name: 'products' })
 export class Product {
@@ -23,12 +26,12 @@ export class Product {
     @OneToMany(() => Modifier, modifier => modifier.product)
     modifiers: Modifier[];
 
-    // @OneToMany(() => ProductObservation, productObservation => productObservation.product)
-    // productObservations: ProductObservation[];
+    @OneToMany(() => ProductObservation, productObservation => productObservation.product)
+    productObservations: ProductObservation[];
 
-    // @OneToMany(() => PizzaFlavor, pizzaFlavor => pizzaFlavor.product)
-    // pizzaFlavors: PizzaFlavor[];
+    @OneToMany(() => PizzaFlavor, pizzaFlavor => pizzaFlavor.product)
+    pizzaFlavors: PizzaFlavor[];
 
-    // @OneToMany(() => OrderItem, orderItem => orderItem.product)
-    // orderItems: OrderItem[];
+    @OneToMany(() => OrderItem, orderItem => orderItem.product)
+    orderItems: OrderItem[];
 }

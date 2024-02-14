@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, Enum } from 'typeorm';
-import { OrderItem } from './orderItem.entity';
-import { OrderUpdate } from './orderUpdate.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn } from 'typeorm';
+import { OrderItem } from '../order_items/order-item.entity';
+import { OrderUpdate } from '../order_updates/order-update.entity';
 import { Table } from '../tables/table.entity';
 
 enum OrderType {

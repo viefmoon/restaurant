@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
-import { OrderItem } from '../orders/orderItem.entity';
-import { ProductObservation } from './productObservation.entity';
+import { OrderItem } from '../order_items/order-item.entity';
+import { ProductObservation } from '../product_observations/product-observation.entity';
 
 @Entity({ name: 'selected_product_observations' })
 export class SelectedProductObservation {

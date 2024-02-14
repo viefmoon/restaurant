@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
 import { Product } from '../products/product.entity';
-import { SelectedModifier } from './selectedModifier.entity';
+import { SelectedModifier } from '../selected_modifiers/selected-modifier.entity';
 
 @Entity({ name: 'modifiers' })
 export class Modifier {

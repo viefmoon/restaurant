@@ -2,10 +2,10 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'ty
 import { Order } from '../orders/order.entity';
 import { Product } from '../products/product.entity';
 import { ProductVariant } from '../product_variants/product-variant.entity';
-import { SelectedModifier } from '../modifiers/selected-modifier.entity';
-import { SelectedProductObservation } from '../observations/selected-product-observation.entity';
-import { PizzaFlavor } from '../pizzas/pizzaFlavor.entity';
-import { OrderItemUpdate } from './orderItemUpdate.entity';
+import { SelectedModifier } from '../selected_modifiers/selected-modifier.entity';
+import { SelectedProductObservation } from '../selected_product_observations/selected-product-observation.entity';
+import { PizzaFlavor } from '../pizza_flavors/pizza-flavor.entity';
+import { OrderItemUpdate } from '../order_item_updates/order-item-update.entity';
 
 enum OrderItemStatus {
     CREATED = "creado",
