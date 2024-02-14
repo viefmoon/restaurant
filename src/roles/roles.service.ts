@@ -14,4 +14,8 @@ export class RolesService {
         return this.rolesRepository.save(newRol);
     }
 
+    findAll() {
+        return this.rolesRepository.find();
+    }
+
 }

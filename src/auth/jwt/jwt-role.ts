@@ -1,4 +1,8 @@
 export enum JwtRole {
-    CLIENT = 'CLIENT',
     ADMIN = 'ADMIN',
+    WAITER = 'WAITER',
+    HAMBURGER_CHEF = 'HAMBURGER_CHEF',
+    PIZZA_CHEF = 'PIZZA_CHEF',
+    COOKIE_CHEF = 'COOKIE_CHEF',
+    BAR = 'BAR',
 }

@@ -10,6 +10,7 @@ export class AuthController {
 
     @Post('register') // http://localhost/auth/register -> POST 
     register(@Body() user: RegisterAuthDto) {
+        console.log(user);
         return this.authService.register(user);
     }
     

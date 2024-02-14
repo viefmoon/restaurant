@@ -20,65 +20,66 @@ export class AuthService {
     ) {}
 
     async register(user: RegisterAuthDto) {
-
-        const { username } = user;
-        const usernameExist = await this.usersRepository.findOneBy({ username: username })
-
+        console.log('USER', user);
+        const { username, roleId } = user;
+        const usernameExist = await this.usersRepository.findOneBy({ username });
+    
         if (usernameExist) {
-            // 409 CONFLICT
             throw new HttpException('El username ya esta registrado', HttpStatus.CONFLICT);
         }
-
+    
         const newUser = this.usersRepository.create(user);
-        let rolesIds = [];
         
-        if (user.rolesIds !== undefined && user.rolesIds !== null) { // DATA
-            rolesIds = user.rolesIds;
+        const role = await this.rolesRepository.findOneBy({ id: roleId });
+        if (!role) {
+            throw new HttpException('El rol no existe', HttpStatus.BAD_REQUEST);
         }
-        else {
-            rolesIds.push('CLIENT')
-        }
-        
-        const roles = await this.rolesRepository.findBy({ id: In(rolesIds) });
-        newUser.roles = roles;
-
+        newUser.roles = [role];
+    
         const userSaved = await this.usersRepository.save(newUser);
-
-        const rolesString = userSaved.roles.map(rol => rol.id); //['CLIENT', 'ADMIN']
-        const payload = { id: userSaved.id, username: userSaved.username, roles: rolesString };
+    
+        const payload = { id: userSaved.id, username: userSaved.username, roles: [role.id] };
         const token = this.jwtService.sign(payload);
         const data = {
-            username: userSaved,
+            username: userSaved.username,
             token: 'Bearer ' + token
-        }
-        delete data.username.password;
+        };
+        //delete data.username.password;
         return data;
     }
 
     async login(loginData: LoginAuthDto) {
 
+        console.log('LOGIN DATA', loginData);
+    
         const { username, password } = loginData;
         const userFound = await this.usersRepository.findOne({ 
             where: { username: username },
+            select: ['id', 'username', 'name', 'password', 'notification_token', 'created_at', 'updated_at'], 
             relations: ['roles']
-         })
+        });
+
         if (!userFound) {
             throw new HttpException('El username no existe', HttpStatus.NOT_FOUND);
         }
-        
+        console.log('USER FOUND', userFound);
+    
         const isPasswordValid = await compare(password, userFound.password);
         if (!isPasswordValid) {
             console.log('PASSWORD INCORRECTO');
             
-            // 403 FORBITTEN access denied
+            // 403 FORBIDDEN access denied
             throw new HttpException('La contraseña es incorrecta', HttpStatus.FORBIDDEN);
         }
-
-        const rolesIds = userFound.roles.map(rol => rol.id); //['CLIENT', 'ADMIN']
-
+    
+        console.log('userFound.roles', userFound.roles);
+        const rolesIds = userFound.roles.map(rol => rol.id); 
+    
+        console.log('ROLES IDS', rolesIds);
+    
         const payload = { 
             id: userFound.id, 
-            namename: userFound.name, 
+            name: userFound.name, // Corregido de "namename" a "name"
             roles: rolesIds 
         };
         const token = this.jwtService.sign(payload);
@@ -86,9 +87,9 @@ export class AuthService {
             username: userFound,
             token: 'Bearer ' + token
         }
-
+    
         delete data.username.password;
-
+    
         return data;
     }
 

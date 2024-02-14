@@ -17,7 +17,7 @@ export class UsersController {
     // PUT ' PATCH -> ACTUALIZAR
     // DELETE ' => BORRAR
     
-    @HasRoles(JwtRole.CLIENT)
+    @HasRoles(JwtRole.ADMIN)
     @UseGuards(JwtAuthGuard, JwtRolesGuard)
     @Get() // http://localhost/users -> GET
     findAll() {
@@ -29,7 +29,7 @@ export class UsersController {
         return this.usersService.create(user);
     }
     
-    @HasRoles(JwtRole.CLIENT)
+    @HasRoles(JwtRole.ADMIN)
     @UseGuards(JwtAuthGuard, JwtRolesGuard)
     @Put(':id') // http://192.168.1.15:3000/users/:id -> PUT 
     update(@Param('id', ParseIntPipe) id: number, @Body() user: UpdateUserDto) {
