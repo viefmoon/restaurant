@@ -1,14 +1,15 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { Area, Status } from '../table.entity';
+import { IsEnum, IsNumber, IsOptional } from 'class-validator';
+import { Status } from '../table.entity';
+import { Area } from '../../areas/area.entity';
 
 export class CreateTableDto {
-    @IsString()
-    number: string;
-
-    @IsEnum(Area)
-    area: Area;
+    @IsNumber()
+    number: number;
 
     @IsOptional()
     @IsEnum(Status)
     status?: Status;
+
+    area: Area;
 }
+

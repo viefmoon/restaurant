@@ -1,0 +1,5 @@
+# Ignorar todos los archivos
+*
+
+# No ignorar archivos .entity.ts
+!*.entity.ts

@@ -10,7 +10,7 @@ export class ProductObservationType {
     @Column()
     name: string;
 
-    @ManyToOne(() => Product, product => product.productObservations)
+    @ManyToOne(() => Product, product => product.productObservationTypes)
     product: Product;
 
     @OneToMany(() => ProductObservation, productObservation => productObservation.productObservationType)

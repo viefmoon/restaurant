@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
-import { ProductObservationType } from '../product_observation_type/product-observation_type.entity';
+import { ProductObservationType } from '../product_observation_types/product-observation-type.entity';
 
 import { SelectedProductObservation } from '../selected_product_observations/selected-product-observation.entity';
 

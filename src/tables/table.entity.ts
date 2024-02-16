@@ -3,8 +3,8 @@ import { Order } from 'src/orders/order.entity';
 import { Area } from 'src/areas/area.entity';
 
 export enum Status {
-    AVAILABLE = 'disponible',
-    OCCUPIED = 'ocupada'
+    AVAILABLE = 'Disponible',
+    OCCUPIED = 'Ocupada'
 }
 
 @Entity({ name: 'tables' })
@@ -14,7 +14,7 @@ export class Table {
     id: number;
 
     @Column()
-    number: string;
+    number: number;
 
     @Column({
         type: 'enum',

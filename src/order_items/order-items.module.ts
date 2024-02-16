@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { CategoriesService } from './categories.service';
-import { CategoriesController } from './categories.controller';
+import { OrderItem } from './order-item.entity';
+import { OrderItemsController } from './order-items.controller';
+import { OrderItemsService } from './order-items.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Category } from './category.entity'; // Asume una entidad Category
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Category])], // Importa solo las entidades relevantes para categorías
-  providers: [CategoriesService], // Provee el servicio de categorías
-  controllers: [CategoriesController] // Registra el controlador de categorías
+  imports: [TypeOrmModule.forFeature([OrderItem])], // Importa solo las entidades relevantes para categorías
+  providers: [OrderItemsService], // Provee el servicio de categorías
+  controllers: [OrderItemsController] // Registra el controlador de categorías
 })
-export class CategoriesModule {}
+export class OrderItemsModule {}
+

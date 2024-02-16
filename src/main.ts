@@ -6,6 +6,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { seedRoles } from './seeders/role.seeder';
 import { seedUsers } from './seeders/user.seeder';
+import { seedProducts } from './seeders/product.seeder';
+import { seedTables } from './seeders/table.seeder';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,13 +20,15 @@ async function bootstrap() {
     try {
       await seedRoles(dataSource);
       await seedUsers(dataSource);
+      await seedTables(dataSource);
+      await seedProducts(dataSource);
       console.log('Seeders ejecutados correctamente.');
     } catch (error) {
       console.error('Error ejecutando seeders:', error);
     }
   }
 
-  await app.listen(3000, '192.168.100.32' || 'localhost');
+  await app.listen(3000, '192.168.100.25' || 'localhost');
 }
 
 bootstrap();
