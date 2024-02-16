@@ -1,17 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from 'typeorm';
 import { Order } from 'src/orders/order.entity';
-
-export enum Area {
-    ARCO = 'ARCO',
-    BAR = 'BAR',
-    ENTRADA = 'ENTRADA',
-    EQUIPAL = 'EQUIPAL',
-    JARDIN = 'JARDIN'
-}
+import { Area } from 'src/areas/area.entity';
 
 export enum Status {
-    AVAILABLE = 'available',
-    OCCUPIED = 'occupied'
+    AVAILABLE = 'disponible',
+    OCCUPIED = 'ocupada'
 }
 
 @Entity({ name: 'tables' })
@@ -25,17 +18,15 @@ export class Table {
 
     @Column({
         type: 'enum',
-        enum: Area,
-    })
-    area: Area;
-
-    @Column({
-        type: 'enum',
         enum: Status,
         default: Status.AVAILABLE
     })
     status: Status;
 
+    @ManyToOne(() => Area, (area) => area.tables)
+    area: Area;
+
     @OneToMany(() => Order, (order) => order.table)
     orders: Order[];
+
 }

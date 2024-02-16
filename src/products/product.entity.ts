@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
 import { Subcategory } from '../subcategories/subcategory.entity'
 import { ProductVariant } from '../product_variants/product-variant.entity'
-import { Modifier } from '../modifiers/modifier.entity'
+import { ModifierType } from '../modifier_types/modifier-type.entity'
 import { ProductObservation } from '../product_observations/product-observation.entity'
 import { PizzaFlavor } from '../pizza_flavors/pizza-flavor.entity'
 import { OrderItem } from '../order_items/order-item.entity'
@@ -23,8 +23,8 @@ export class Product {
     @OneToMany(() => ProductVariant, productVariant => productVariant.product)
     productVariants: ProductVariant[];
     
-    @OneToMany(() => Modifier, modifier => modifier.product)
-    modifiers: Modifier[];
+    @OneToMany(() => ModifierType, modifierType => modifierType.product)
+    modifierTypes: ModifierType[];
 
     @OneToMany(() => ProductObservation, productObservation => productObservation.product)
     productObservations: ProductObservation[];

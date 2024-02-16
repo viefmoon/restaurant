@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
-import { Product } from '../products/product.entity';
+import { ProductObservationType } from '../product_observation_type/product-observation_type.entity';
+
 import { SelectedProductObservation } from '../selected_product_observations/selected-product-observation.entity';
 
 @Entity({ name: 'product_observations' })
@@ -10,8 +11,8 @@ export class ProductObservation {
     @Column()
     name: string;
 
-    @ManyToOne(() => Product, product => product.productObservations)
-    product: Product;
+    @ManyToOne(() => ProductObservationType, productObservationType => productObservationType.productObservations)
+    productObservationType: ProductObservationType;
 
     @OneToMany(() => SelectedProductObservation, selectedProductObservation => selectedProductObservation.productObservation)
     selectedProductObservations: SelectedProductObservation[];
