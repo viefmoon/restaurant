@@ -55,7 +55,7 @@ export class AuthService {
         const { username, password } = loginData;
         const userFound = await this.usersRepository.findOne({ 
             where: { username: username },
-            select: ['id', 'username', 'name', 'password', 'notification_token', 'created_at', 'updated_at'], 
+            select: ['id', 'username', 'name', 'password', 'created_at', 'updated_at'], 
             relations: ['roles']
         });
 
@@ -84,11 +84,11 @@ export class AuthService {
         };
         const token = this.jwtService.sign(payload);
         const data = {
-            username: userFound,
+            user: userFound,
             token: 'Bearer ' + token
         }
     
-        delete data.username.password;
+        delete data.user.password;
     
         return data;
     }

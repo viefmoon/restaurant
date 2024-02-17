@@ -28,7 +28,7 @@ async function bootstrap() {
     }
   }
 
-  await app.listen(3000, '192.168.100.25' || 'localhost');
+  await app.listen(3000, '192.168.100.32' || 'localhost' || '192.168.100.32');
 }
 
 bootstrap();
