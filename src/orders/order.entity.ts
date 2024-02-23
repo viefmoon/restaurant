@@ -45,6 +45,12 @@ export class Order {
     @Column({ nullable: true })
     comments: string;
 
+    @Column({ nullable: true })
+    phoneNumber: string;
+
+    @Column({ nullable: true })
+    address: string;
+
     @ManyToOne(() => Table, table => table.orders, { nullable: true })
     table: Table;
 
