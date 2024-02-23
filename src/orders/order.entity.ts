@@ -3,13 +3,13 @@ import { OrderItem } from '../order_items/order-item.entity';
 import { OrderUpdate } from '../order_updates/order-update.entity';
 import { Table } from '../tables/table.entity';
 
-enum OrderType {
+export enum OrderType {
     DELIVERY = "A domicilio",
     DINE_IN = "Para comer aquí",
     PICK_UP_WAIT = "Pasan/Esperan",
 }
 
-enum OrderStatus {
+export enum OrderStatus {
     CREATED = "Creado",
     IN_PREPARATION = "En preparacion",
     FINISHED = "Finalizado"
@@ -50,6 +50,9 @@ export class Order {
 
     @Column({ nullable: true })
     address: string;
+
+    @Column({ nullable: true })
+    customerName: string;
 
     @ManyToOne(() => Table, table => table.orders, { nullable: true })
     table: Table;

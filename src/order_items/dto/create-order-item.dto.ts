@@ -1,26 +1,54 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDate } from 'class-validator';
+import { Type } from 'class-transformer';
+import { 
+    IsNotEmpty, 
+    IsOptional, 
+    IsEnum, 
+    ValidateNested, 
+    IsArray, 
+    IsInt 
+} from 'class-validator';
+import { OrderItemStatus } from '../order-item.entity';
 
-export class CreateOrderDto {
+export class SelectedModifierDto {
     @IsNotEmpty()
-    @IsString()
-    orderType: string;
+    modifierId: number; 
+}
 
+export class SelectedProductObservationDto {
     @IsNotEmpty()
-    @IsString()
-    status: string;
+    productObservationId: number; 
+}
 
-    @IsNumber()
-    amountPaid: number;
-
-    @IsNumber()
-    total: number;
+export class CreateOrderItemDto {
+    @IsEnum(OrderItemStatus)
+    status: OrderItemStatus = OrderItemStatus.CREATED; 
 
     @IsOptional()
-    @IsString()
     comments?: string;
 
-    // Incluye tableId si la entidad Table está disponible
-    // @IsOptional()
-    // @IsNumber()
-    // tableId?: number;
+    @IsNotEmpty()
+    orderId: number;
+
+    @IsNotEmpty()
+    productId: number;
+
+    @IsOptional()
+    productVariantId?: number;
+
+    
+    @IsOptional()
+    pizzaFlavorId?: number;
+
+    @IsArray()
+    @IsOptional()
+    @ValidateNested({ each: true })
+    @Type(() => SelectedModifierDto)
+    selectedModifiers?: SelectedModifierDto[];
+
+    @IsArray()
+    @IsOptional()
+    @ValidateNested({ each: true })
+    @Type(() => SelectedProductObservationDto)
+    selectedProductObservations?: SelectedProductObservationDto[];
 }
+

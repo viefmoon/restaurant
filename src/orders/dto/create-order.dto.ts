@@ -1,26 +1,34 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDate } from 'class-validator';
+import { IsEnum, IsOptional, IsString, ValidateNested, IsArray, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
+import { OrderType } from '../order.entity';
+import { CreateOrderItemDto } from 'src/order_items/dto/create-order-item.dto';
 
 export class CreateOrderDto {
-    @IsNotEmpty()
-    @IsString()
-    orderType: string;
-
-    @IsNotEmpty()
-    @IsString()
-    status: string;
-
-    @IsNumber()
-    amountPaid: number;
-
-    @IsNumber()
-    total: number;
+    @IsEnum(OrderType)
+    orderType: OrderType;
 
     @IsOptional()
     @IsString()
     comments?: string;
 
-    // Incluye tableId si la entidad Table está disponible
-    // @IsOptional()
-    // @IsNumber()
-    // tableId?: number;
+    @IsOptional()
+    @IsString()
+    phoneNumber?: string;
+
+    @IsOptional()
+    @IsString()
+    address?: string;
+
+    @IsOptional()
+    @IsString()
+    customerName?: string;
+
+    @IsOptional()
+    @IsInt()
+    tableId?: number;
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CreateOrderItemDto)
+    orderItems: CreateOrderItemDto[];
 }

@@ -7,7 +7,7 @@ import { SelectedProductObservation } from '../selected_product_observations/sel
 import { PizzaFlavor } from '../pizza_flavors/pizza-flavor.entity';
 import { OrderItemUpdate } from '../order_item_updates/order-item-update.entity';
 
-enum OrderItemStatus {
+export enum OrderItemStatus {
     CREATED = "creado",
     IN_PREPARATION = "en preparación",
     FINISHED = "finalizado"
