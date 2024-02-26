@@ -12,7 +12,5 @@ export class OrderItemUpdate {
 
     @ManyToOne(() => OrderUpdate, orderUpdate => orderUpdate.orderItemUpdates)
     orderUpdate: OrderUpdate;
-
-    @CreateDateColumn()
-    timestamp: Date;
 }
+

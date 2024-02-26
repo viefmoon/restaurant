@@ -10,9 +10,11 @@ export enum OrderType {
 }
 
 export enum OrderStatus {
-    CREATED = "Creado",
-    IN_PREPARATION = "En preparacion",
-    FINISHED = "Finalizado"
+    CREATED = "creado",
+    IN_PREPARATION = "preparandose",
+    PREPARED = "preparada",
+    FINISHED = "finalizada",
+    CANCELED = "cancelada"
 }
 
 @Entity({ name: 'orders' })

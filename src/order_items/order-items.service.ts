@@ -11,6 +11,7 @@ import { Order } from 'src/orders/order.entity';
 import { Product } from 'src/products/product.entity';
 import { ProductVariant } from 'src/product_variants/product-variant.entity';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
+import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 
 
 @Injectable()
@@ -83,6 +84,14 @@ export class OrderItemsService {
         }
 
         return this.orderItemRepository.findOne({ where: { id: savedOrderItem.id }, relations: ['selectedModifiers', 'selectedProductObservations'] });
+    }
+
+    async updateStatus(id: number, updateOrderItemStatusDto: UpdateOrderItemStatusDto): Promise<OrderItem> {
+        const orderItem = await this.orderItemRepository.findOne({ where: { id: id } });
+
+        orderItem.status = updateOrderItemStatusDto.status;
+        await this.orderItemRepository.save(orderItem);
+        return orderItem;
     }
 }
 

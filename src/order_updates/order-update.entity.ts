@@ -8,7 +8,7 @@ export class OrderUpdate {
     id: number;
 
     @CreateDateColumn()
-    updateDate: Date;
+    updateAt: Date;
 
     @ManyToOne(() => Order, order => order.orderUpdates)
     order: Order;
