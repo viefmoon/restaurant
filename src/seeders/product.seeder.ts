@@ -129,6 +129,7 @@ export const seedProducts = async (dataSource: DataSource) => {
           modifiers: [
             {
               typeName: 'Papas',
+              acceptsMultiple: false,
               options: [
                 { name: 'C/Papas', price: 10 },
                 { name: 'C/Gajo', price: 15 },
@@ -136,6 +137,7 @@ export const seedProducts = async (dataSource: DataSource) => {
             },
             {
               typeName: 'Extras',
+              acceptsMultiple: true,
               options: [
                 { name: 'Con Tocino', price: 5 },
                 { name: 'Doble Carne', price: 10 },
@@ -144,8 +146,9 @@ export const seedProducts = async (dataSource: DataSource) => {
           ],
           observations: [ // Añadir observaciones aquí
             {
-              typeName: 'Sin Ingrediente',
-              options: ['Sin Cebolla', 'Sin Chile', 'Sin Jitomate'],
+              typeName: 'Extras',
+              acceptsMultiple: true,
+              options: ['Con Tocino', 'Doble Carne'],
             },
           ],
         },
@@ -215,6 +218,9 @@ export const seedProducts = async (dataSource: DataSource) => {
           } else {
             product.price = null;
           }
+
+          product.imageUrl = `assets/images/${item.name.replaceAll(' ', '').toLowerCase()}.jpg`;
+
   
           await productRepository.save(product);
         }
@@ -257,8 +263,10 @@ export const seedProducts = async (dataSource: DataSource) => {
               modifierType = new ModifierType();
               modifierType.name = modifierTypeData.typeName;
               modifierType.product = product;
+              modifierType.acceptsMultiple = modifierTypeData.acceptsMultiple; // Usar el valor definido en el seeder
               await modifierTypeRepository.save(modifierType);
             }
+            
   
             for (const modifierData of modifierTypeData.options) {
               // Verificar si el modificador ya existe para el tipo de modificador
@@ -296,6 +304,7 @@ export const seedProducts = async (dataSource: DataSource) => {
               observationType = new ProductObservationType();
               observationType.name = observationTypeData.typeName;
               observationType.product = product;
+              observationType.acceptsMultiple = observationTypeData.acceptsMultiple; // Usar el valor definido en el seeder
               await productObservationTypeRepository.save(observationType);
             }
   

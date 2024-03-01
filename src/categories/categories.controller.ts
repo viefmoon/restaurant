@@ -6,7 +6,7 @@ export class CategoriesController {
     constructor(private readonly categoriesService: CategoriesService) {}
 
     @Get()
-    findAll() {
+    async findAll() {
         return this.categoriesService.findAllWithSubcategoriesAndProducts();
     }
 

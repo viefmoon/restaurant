@@ -16,6 +16,9 @@ export class Product {
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     price: number | null;
+    
+    @Column({ nullable: true })
+    imageUrl: string | null;
 
     @ManyToOne(() => Subcategory, subcategory => subcategory.products)
     subcategory: Subcategory;

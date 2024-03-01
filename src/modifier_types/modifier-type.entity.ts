@@ -10,6 +10,9 @@ export class ModifierType {
     @Column()
     name: string;
 
+    @Column({ default: false })
+    acceptsMultiple: boolean;
+
     @ManyToOne(() => Product, product => product.modifierTypes)
     product: Product;
 

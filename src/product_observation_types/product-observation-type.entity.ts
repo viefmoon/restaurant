@@ -13,6 +13,9 @@ export class ProductObservationType {
     @ManyToOne(() => Product, product => product.productObservationTypes)
     product: Product;
 
+    @Column({ default: false })
+    acceptsMultiple: boolean;
+
     @OneToMany(() => ProductObservation, productObservation => productObservation.productObservationType)
     productObservations: ProductObservation[];
 }

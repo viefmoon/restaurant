@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { RolesModule } from './roles/roles.module';
 import { AreasModule } from './areas/areas.module';
 import { TablesModule } from './tables/tables.module';
+import { CategoriesModule } from './categories/categories.module';
 
 
 @Module({
@@ -25,7 +26,8 @@ import { TablesModule } from './tables/tables.module';
     AuthModule,
     RolesModule,
     AreasModule,
-    TablesModule
+    TablesModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
