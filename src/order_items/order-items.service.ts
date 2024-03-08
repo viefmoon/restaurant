@@ -38,27 +38,26 @@ export class OrderItemsService {
     ) {}
 
     async create(createOrderItemDto: CreateOrderItemDto): Promise<OrderItem> {
-        // Transformar CreateOrderItemDto a un objeto compatible con OrderItem
         const order = await this.orderRepository.findOne({ where: { id: createOrderItemDto.orderId } });
-        const product = await this.productRepository.findOne({ where: { id: createOrderItemDto.productId } });
-        const productVariant = createOrderItemDto.productVariantId ? await this.productVariantRepository.findOne({ where: { id: createOrderItemDto.productVariantId } }) : null;
+        const product = await this.productRepository.findOne({ where: { id: createOrderItemDto.product.id } });
+        const productVariant = createOrderItemDto.productVariant ? await this.productVariantRepository.findOne({ where: { id: createOrderItemDto.productVariant.id } }) : null;
         const pizzaFlavor = createOrderItemDto.pizzaFlavorId ? await this.pizzaFlavorRepository.findOne({ where: { id: createOrderItemDto.pizzaFlavorId } }) : null;
 
         const orderItem = this.orderItemRepository.create({
-            status: createOrderItemDto.status,
             comments: createOrderItemDto.comments,
             order: order,
             product: product,
             productVariant: productVariant,
             pizzaFlavor: pizzaFlavor,
+            price: createOrderItemDto.price,
         });
 
-        const savedOrderItem = await this.orderItemRepository.save(orderItem);
+        const savedOrderItem = await this.orderItemRepository.save(orderItem); 
 
         // Procesar selectedModifiers
         if (createOrderItemDto.selectedModifiers?.length) {
             for (const modifierDto of createOrderItemDto.selectedModifiers) {
-                const modifier = await this.modifierRepository.findOne({ where: { id: modifierDto.modifierId } });
+                const modifier = await this.modifierRepository.findOne({ where: { id: modifierDto.modifier.id } });
                 if (modifier) {
                     const selectedModifier = this.selectedModifierRepository.create({
                         orderItem: savedOrderItem,
@@ -69,10 +68,9 @@ export class OrderItemsService {
             }
         }
 
-        // Procesar selectedProductObservations
         if (createOrderItemDto.selectedProductObservations?.length) {
             for (const observationDto of createOrderItemDto.selectedProductObservations) {
-                const productObservation = await this.productObservationRepository.findOne({ where: { id: observationDto.productObservationId } });
+                const productObservation = await this.productObservationRepository.findOne({ where: { id: observationDto.productObservation.id } });
                 if (productObservation) {
                     const selectedProductObservation = this.selectedProductObservationRepository.create({
                         orderItem: savedOrderItem,

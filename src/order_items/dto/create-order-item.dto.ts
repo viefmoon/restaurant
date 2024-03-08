@@ -7,37 +7,42 @@ import {
     IsArray, 
     IsInt 
 } from 'class-validator';
-import { OrderItemStatus } from '../order-item.entity';
+import { Modifier } from 'src/modifiers/modifier.entity';
+import { ProductObservation } from 'src/product_observations/product-observation.entity';
+import { ProductVariant } from 'src/product_variants/product-variant.entity';
+import { Product } from 'src/products/product.entity';
+
 
 export class SelectedModifierDto {
-    @IsNotEmpty()
-    modifierId: number; 
+    @IsOptional()
+    modifier?: Modifier; 
 }
 
 export class SelectedProductObservationDto {
     @IsNotEmpty()
-    productObservationId: number; 
+    productObservation: ProductObservation; 
 }
 
 export class CreateOrderItemDto {
-    @IsEnum(OrderItemStatus)
-    status: OrderItemStatus = OrderItemStatus.CREATED; 
 
     @IsOptional()
     comments?: string;
 
-    @IsNotEmpty()
-    orderId: number;
-
-    @IsNotEmpty()
-    productId: number;
+    @IsOptional()
+    orderId?: number;
 
     @IsOptional()
-    productVariantId?: number;
+    product?: Product;
+
+    @IsOptional()
+    productVariant?: ProductVariant;
 
     
     @IsOptional()
     pizzaFlavorId?: number;
+
+    @IsOptional()
+    price: number;
 
     @IsArray()
     @IsOptional()

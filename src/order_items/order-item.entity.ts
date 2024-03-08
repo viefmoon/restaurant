@@ -7,11 +7,7 @@ import { SelectedProductObservation } from '../selected_product_observations/sel
 import { PizzaFlavor } from '../pizza_flavors/pizza-flavor.entity';
 import { OrderItemUpdate } from '../order_item_updates/order-item-update.entity';
 
-export enum OrderItemStatus {
-    CREATED = "creado",
-    IN_PREPARATION = "en preparación",
-    FINISHED = "finalizado"
-}
+export enum OrderItemStatus { created = "created", inPreparation = "in_preparation", finished = "finished" }
 
 @Entity({ name: 'order_items' })
 export class OrderItem {
@@ -21,9 +17,12 @@ export class OrderItem {
     @Column({
         type: "enum",
         enum: OrderItemStatus,
-        default: OrderItemStatus.CREATED
+        default: OrderItemStatus.created
     })
     status: OrderItemStatus;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    price: number;
 
     @Column({ nullable: true })
     comments: string;

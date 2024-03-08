@@ -11,7 +11,7 @@ import { seedTables } from './seeders/table.seeder';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe({ forbidUnknownValues: false }));
+  app.useGlobalPipes(new ValidationPipe({ forbidUnknownValues: false, transform: true }));
 
   const dataSource = app.get(DataSource);
 

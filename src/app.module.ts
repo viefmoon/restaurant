@@ -8,6 +8,7 @@ import { RolesModule } from './roles/roles.module';
 import { AreasModule } from './areas/areas.module';
 import { TablesModule } from './tables/tables.module';
 import { CategoriesModule } from './categories/categories.module';
+import { OrdersModule } from './orders/orders.module';
 
 
 @Module({
@@ -28,6 +29,7 @@ import { CategoriesModule } from './categories/categories.module';
     AreasModule,
     TablesModule,
     CategoriesModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

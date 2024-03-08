@@ -1,20 +1,20 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn, ManyToMany } from 'typeorm';
 import { OrderItem } from '../order_items/order-item.entity';
 import { OrderUpdate } from '../order_updates/order-update.entity';
 import { Table } from '../tables/table.entity';
-
+import { Area } from 'src/areas/area.entity';
 export enum OrderType {
-    DELIVERY = "A domicilio",
-    DINE_IN = "Para comer aquí",
-    PICK_UP_WAIT = "Pasan/Esperan",
+    dineIn = "dineIn",
+    delivery = "delivery",
+    pickUpWait = "pickUpWait"
 }
 
 export enum OrderStatus {
-    CREATED = "creado",
-    IN_PREPARATION = "preparandose",
-    PREPARED = "preparada",
-    FINISHED = "finalizada",
-    CANCELED = "cancelada"
+    created = "created",
+    in_preparation = "in_preparation",
+    prepared = "prepared",
+    finished = "finished",
+    canceled = "canceled"
 }
 
 @Entity({ name: 'orders' })
@@ -31,7 +31,7 @@ export class Order {
     @Column({
         type: "enum",
         enum: OrderStatus,
-        default: OrderStatus.CREATED
+        default: OrderStatus.created
     })
     status: OrderStatus;
 
@@ -41,8 +41,11 @@ export class Order {
     @CreateDateColumn()
     creationDate: Date;
 
+    @Column({ type: 'timestamp', nullable: true })
+    scheduledDeliveryTime: Date;
+
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-    total: number;
+    totalCost: number;
 
     @Column({ nullable: true })
     comments: string;
@@ -51,10 +54,13 @@ export class Order {
     phoneNumber: string;
 
     @Column({ nullable: true })
-    address: string;
+    deliveryAddress: string;
 
     @Column({ nullable: true })
     customerName: string;
+
+    @ManyToOne(() => Area, area => area.orders, { nullable: true })
+    area: Area;
 
     @ManyToOne(() => Table, table => table.orders, { nullable: true })
     table: Table;

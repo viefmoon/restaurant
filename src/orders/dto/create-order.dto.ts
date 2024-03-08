@@ -1,7 +1,9 @@
-import { IsEnum, IsOptional, IsString, ValidateNested, IsArray, IsInt } from 'class-validator';
+import { IsEnum, IsOptional, IsString, ValidateNested, IsArray, IsInt, IsDate } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderType } from '../order.entity';
 import { CreateOrderItemDto } from 'src/order_items/dto/create-order-item.dto';
+import { Area } from 'src/areas/area.entity';
+import { Table } from 'src/tables/table.entity';
 
 export class CreateOrderDto {
     @IsEnum(OrderType)
@@ -13,19 +15,31 @@ export class CreateOrderDto {
 
     @IsOptional()
     @IsString()
-    phoneNumber?: string;
+    deliveryAddress?: string;
+
+    
+    @IsOptional()
+    @IsDate()
+    @Type(() => Date) // Asegura la conversión de la cadena a Date
+    scheduledDeliveryTime?: Date;
 
     @IsOptional()
     @IsString()
-    address?: string;
+    phoneNumber?: string;
+
 
     @IsOptional()
     @IsString()
     customerName?: string;
+    
+    @IsOptional()
+    totalCost?: number;
 
     @IsOptional()
-    @IsInt()
-    tableId?: number;
+    area?: Area;
+
+    @IsOptional()
+    table?: Table;
 
     @IsArray()
     @ValidateNested({ each: true })

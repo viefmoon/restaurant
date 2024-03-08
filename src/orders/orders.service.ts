@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Order } from './order.entity';
+import { Repository, In } from 'typeorm';
+import { Order, OrderStatus } from './order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemsService } from 'src/order_items/order-items.service';
 import { Table } from 'src/tables/table.entity';
@@ -17,21 +17,27 @@ export class OrdersService {
     ) {}
 
     async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
-        let table: Table = null;
-        if (createOrderDto.tableId) {
+        if (createOrderDto.table) {
             const table = await this.tableRepository.findOne({
-                where: { id: createOrderDto.tableId }
+                where: { id: createOrderDto.table.id }
             });
             if (!table) {
                 throw new Error('Table not found');
             }
         }
     
-        // Asegúrate de que estás pasando el objeto completo de la mesa a la creación de la orden
         const order = this.orderRepository.create({
             ...createOrderDto,
-            table: table, // Asociar la mesa si es especificada
-            orderItems: [], // Inicializamos vacío; se llenará en cascada
+            orderType: createOrderDto.orderType,
+            totalCost: createOrderDto.totalCost,
+            comments: createOrderDto.comments,
+            scheduledDeliveryTime: createOrderDto.scheduledDeliveryTime,
+            phoneNumber: createOrderDto.phoneNumber,
+            customerName: createOrderDto.customerName,
+            area: createOrderDto.area,
+            table: createOrderDto.table,
+
+            orderItems: [], 
         });
     
         const savedOrder = await this.orderRepository.save(order);
@@ -42,5 +48,17 @@ export class OrdersService {
         }
     
         return this.orderRepository.findOne({ where: { id: savedOrder.id }, relations: ['orderItems', 'table'] });
+    }
+    async getOpenOrders(): Promise<Order[]> {
+        const orders = await this.orderRepository.find({
+            where: {
+                status: In([OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared]),
+            },
+            relations: ['orderItems', 'table','area', 'orderItems.product', 'orderItems.productVariant', 
+            'orderItems.selectedModifiers', 'orderItems.selectedModifiers.modifier', 'orderItems.selectedProductObservations', 
+            'orderItems.selectedProductObservations.productObservation'],
+        });
+        console.log(orders);
+        return orders;
     }
 }
