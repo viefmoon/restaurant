@@ -7,6 +7,8 @@ import { ModifierType } from '../modifier_types/modifier-type.entity';
 import { Modifier } from '../modifiers/modifier.entity';
 import { ProductObservationType } from 'src/product_observation_types/product-observation-type.entity';
 import { ProductObservation } from 'src/product_observations/product-observation.entity';
+import { PizzaFlavor } from '../pizza_flavors/pizza-flavor.entity';
+import { PizzaIngredient } from '../pizza_ingredients/pizza-ingredient.entity';
 
 export const seedProducts = async (dataSource: DataSource) => {
   const categoryRepository = dataSource.getRepository(Category);
@@ -17,6 +19,8 @@ export const seedProducts = async (dataSource: DataSource) => {
   const modifierRepository = dataSource.getRepository(Modifier);
   const productObservationTypeRepository = dataSource.getRepository(ProductObservationType);
   const productObservationRepository = dataSource.getRepository(ProductObservation);
+  const pizzaFlavorRepository = dataSource.getRepository(PizzaFlavor);
+  const pizzaIngredientRepository = dataSource.getRepository(PizzaIngredient);
 
   const categories = [
     {
@@ -175,6 +179,151 @@ export const seedProducts = async (dataSource: DataSource) => {
       ]},
     ],
   },
+  {
+    subcategoryName: 'Pizzas',
+    items: [
+      {
+        name: 'Pizza',
+        variants: [
+          { name: 'Grande', price: 240 },
+          { name: 'Mediana', price: 190 },
+          { name: 'Chica', price: 140 },
+          { name: 'Grande C/Relleno', price: 270 },
+          { name: 'Mediana C/Relleno', price: 220 },
+          { name: 'Chica C/Relleno', price: 160 },
+        ],
+        pizzaFlavors: [
+          { name: 'Especial', price: 0 },
+          { name: 'Carnes Frias', price: 0 },
+          { name: 'Lupita', price: 0 },
+          { name: 'Villa', price: 0 },
+          { name: 'Pepperoni', price: 0 },
+          { name: 'Mexicana', price: 0 },
+          { name: 'Zapata', price: 0 },
+          { name: 'Hawaiana', price: 0 },
+          { name: 'La Leña', price: 30 },
+          { name: 'Malinche', price: 30 },
+        ],
+        pizzaIngredients: [
+          { name: 'Jamon', price: 10 },
+          { name: 'Salchicha', price: 10 },
+          { name: 'Pepperoni', price: 10 },
+          { name: 'Piña', price: 10 },
+          { name: 'Champiñon', price: 10 },
+          { name: 'Chorizo', price: 10 },
+          { name: 'Salami', price: 10 },
+          { name: 'Tocino', price: 10 },
+          { name: 'Jitomate', price: 10 },
+          { name: 'Chile Morron', price: 10 },
+          { name: 'Chile Jalapeño', price: 10 },
+        ],
+        modifiers: [
+          {
+            typeName: 'Añadir en mitad 1',
+            acceptsMultiple: true,
+            options: [
+              { name: 'Jamon', price: 5 },
+              { name: 'Salchicha', price: 5 },
+              { name: 'Pepperoni', price: 5 },
+              { name: 'Piña', price: 5 },
+              { name: 'Champiñon', price: 5 },
+              { name: 'Chorizo', price: 5 },
+              { name: 'Salami', price: 5 },
+              { name: 'Tocino', price: 5 },
+              { name: 'Jitomate', price: 5 },
+              { name: 'Chile Morron', price: 5 },
+              { name: 'Chile Jalapeño', price: 5 },
+            ],
+          },
+          {
+            typeName: 'Quitar en mitad 1',
+            acceptsMultiple: true,
+            options: [
+              { name: 'Jamon', price: 0 },
+              { name: 'Salchicha', price: 0 },
+              { name: 'Pepperoni', price: 0 },
+              { name: 'Piña', price: 0 },
+              { name: 'Champiñon', price: 0 },
+              { name: 'Chorizo', price: 0 },
+              { name: 'Salami', price: 0 },
+              { name: 'Tocino', price: 0 },
+              { name: 'Jitomate', price: 0 },
+              { name: 'Chile Morron', price: 0 },
+              { name: 'Chile Jalapeño', price: 0 },
+            ],
+          },
+          {
+            typeName: 'Añadir en mitad 2',
+            acceptsMultiple: true,
+            options: [
+              { name: 'Jamon', price: 5 },
+              { name: 'Salchicha', price: 5 },
+              { name: 'Pepperoni', price: 5 },
+              { name: 'Piña', price: 5 },
+              { name: 'Champiñon', price: 5 },
+              { name: 'Jamon', price: 5 },
+              { name: 'Salchicha', price: 5 },
+              { name: 'Pepperoni', price: 5 },
+              { name: 'Piña', price: 5 },
+              { name: 'Chile Morron', price: 5 },
+              { name: 'Chile Jalapeño', price: 5 },
+            ],
+          },
+          {
+            typeName: 'Quitar en mitad 2',
+            acceptsMultiple: true,
+            options: [
+              { name: 'Sin Jamon', price: 0 },
+              { name: 'Sin Salchicha', price: 0 },
+              { name: 'Sin Pepperoni', price: 0 },
+              { name: 'Sin Piña', price: 0 },
+              { name: 'Sin Champiñon', price: 0 },
+              { name: 'Sin Chorizo', price: 0 },
+              { name: 'Sin Salami', price: 0 },
+              { name: 'Sin Tocino', price: 0 },
+              { name: 'Sin Jitomate', price: 0 },
+              { name: 'Sin Chile Morron', price: 0 },
+              { name: 'Sin Chile Jalapeño', price: 0 },
+            ],
+          },
+          {
+            typeName: 'Añadir',
+            acceptsMultiple: true,
+            options: [
+              { name: 'Sin Jamon', price: 10 },
+              { name: 'Sin Salchicha', price: 10 },
+              { name: 'Sin Pepperoni', price: 10 },
+              { name: 'Sin Piña', price: 10 },
+              { name: 'Sin Champiñon', price: 10 },
+              { name: 'Sin Chorizo', price: 10 },
+              { name: 'Sin Salami', price: 10 },
+              { name: 'Sin Tocino', price: 10 },
+              { name: 'Sin Jitomate', price: 10 },
+              { name: 'Sin Chile Morron', price: 10 },
+              { name: 'Sin Chile Jalapeño', price: 10 },
+            ],
+          },
+          {
+            typeName: 'Quitar',
+            acceptsMultiple: true,
+            options: [
+              { name: 'Sin Jamon', price: 0 },
+              { name: 'Sin Salchicha', price: 0 },
+              { name: 'Sin Pepperoni', price: 0 },
+              { name: 'Sin Piña', price: 0 },
+              { name: 'Sin Champiñon', price: 0 },
+              { name: 'Sin Chorizo', price: 0 },
+              { name: 'Sin Salami', price: 0 },
+              { name: 'Sin Tocino', price: 0 },
+              { name: 'Sin Jitomate', price: 0 },
+              { name: 'Sin Chile Morron', price: 0 },
+              { name: 'Sin Chile Jalapeño', price: 0 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];
 
   for (const categoryData of categories) {
@@ -324,6 +473,50 @@ export const seedProducts = async (dataSource: DataSource) => {
                 observation.productObservationType = observationType;
                 await productObservationRepository.save(observation);
               }
+            }
+          }
+        }
+
+        // Creación de sabores de pizza
+        if ('pizzaFlavors' in item) {
+          for (const pizzaFlavorData of item.pizzaFlavors) {
+            // Verificar si el sabor de pizza ya existe para el producto
+            let pizzaFlavor = await pizzaFlavorRepository.findOne({
+              where: {
+                name: pizzaFlavorData.name,
+                product: { id: product.id }
+              },
+              relations: ["product"],
+            });
+
+            if (!pizzaFlavor) {
+              pizzaFlavor = new PizzaFlavor();
+              pizzaFlavor.name = pizzaFlavorData.name;
+              pizzaFlavor.price = pizzaFlavorData.price;
+              pizzaFlavor.product = product;
+              await pizzaFlavorRepository.save(pizzaFlavor);
+            }
+          }
+        }
+
+        // Creación de ingredientes de pizza
+        if ('pizzaIngredients' in item) {
+          for (const pizzaIngredientData of item.pizzaIngredients) {
+            // Verificar si el ingrediente de pizza ya existe para el producto
+            let pizzaIngredient = await pizzaIngredientRepository.findOne({
+              where: {
+                name: pizzaIngredientData.name,
+                product: { id: product.id }
+              },
+              relations: ["product"],
+            });
+
+            if (!pizzaIngredient) {
+              pizzaIngredient = new PizzaIngredient();
+              pizzaIngredient.name = pizzaIngredientData.name;
+              pizzaIngredient.price = pizzaIngredientData.price;
+              pizzaIngredient.product = product;
+              await pizzaIngredientRepository.save(pizzaIngredient);
             }
           }
         }

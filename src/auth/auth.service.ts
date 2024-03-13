@@ -4,7 +4,7 @@ import { User } from '../users/user.entity';
 import { Repository, In } from 'typeorm';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
-import { compare } from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Rol } from '../roles/rol.entity';
 
@@ -19,9 +19,10 @@ export class AuthService {
         private jwtService: JwtService
     ) {}
 
-    async register(user: RegisterAuthDto) {
-        console.log('USER', user);
+    async  register(user: RegisterAuthDto) {
+
         const { username, roleId } = user;
+        console.log('USER', user);
         const usernameExist = await this.usersRepository.findOneBy({ username });
     
         if (usernameExist) {
@@ -41,12 +42,13 @@ export class AuthService {
         const payload = { id: userSaved.id, username: userSaved.username, roles: [role.id] };
         const token = this.jwtService.sign(payload);
         const data = {
-            username: userSaved.username,
+            user: userSaved,
             token: 'Bearer ' + token
         };
-        //delete data.username.password;
+        delete data.user.password;
         return data;
     }
+    
 
     async login(loginData: LoginAuthDto) {
 
@@ -64,9 +66,11 @@ export class AuthService {
         }
         console.log('USER FOUND', userFound);
     
-        const isPasswordValid = await compare(password, userFound.password);
+        const isPasswordValid = await bcrypt.compare(password, userFound.password);
         if (!isPasswordValid) {
             console.log('PASSWORD INCORRECTO');
+            console.log('userFound.password', userFound.password);
+            console.log('password', password);
             
             // 403 FORBIDDEN access denied
             throw new HttpException('La contraseña es incorrecta', HttpStatus.FORBIDDEN);

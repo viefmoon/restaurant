@@ -4,8 +4,9 @@ import { Product } from '../products/product.entity';
 import { ProductVariant } from '../product_variants/product-variant.entity';
 import { SelectedModifier } from '../selected_modifiers/selected-modifier.entity';
 import { SelectedProductObservation } from '../selected_product_observations/selected-product-observation.entity';
-import { PizzaFlavor } from '../pizza_flavors/pizza-flavor.entity';
 import { OrderItemUpdate } from '../order_item_updates/order-item-update.entity';
+import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
+import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
 
 export enum OrderItemStatus { created = "created", inPreparation = "in_preparation", finished = "finished" }
 
@@ -42,8 +43,11 @@ export class OrderItem {
     @OneToMany(() => SelectedProductObservation, selectedProductObservation => selectedProductObservation.orderItem, { nullable: true })
     selectedProductObservations: SelectedProductObservation[];
 
-    @ManyToOne(() => PizzaFlavor, pizzaFlavor => pizzaFlavor.orderItems, { nullable: true })
-    pizzaFlavor: PizzaFlavor;
+    @OneToMany(() => SelectedPizzaFlavor, selectedPizzaFlavor => selectedPizzaFlavor.orderItem)
+    selectedPizzaFlavors: SelectedPizzaFlavor[];
+    
+    @OneToMany(() => SelectedPizzaIngredient, selectedPizzaIngredient => selectedPizzaIngredient.orderItem)
+    selectedPizzaIngredients: SelectedPizzaIngredient[];
 
     @OneToMany(() => OrderItemUpdate, orderItemUpdate => orderItemUpdate.orderItem, { nullable: true })
     orderItemUpdates: OrderItemUpdate[];

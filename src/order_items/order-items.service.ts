@@ -10,9 +10,11 @@ import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { Order } from 'src/orders/order.entity';
 import { Product } from 'src/products/product.entity';
 import { ProductVariant } from 'src/product_variants/product-variant.entity';
-import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
-
+import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
+import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
+import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
+import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
 
 @Injectable()
 export class OrderItemsService {
@@ -35,20 +37,24 @@ export class OrderItemsService {
         private readonly productVariantRepository: Repository<ProductVariant>,
         @InjectRepository(PizzaFlavor)
         private readonly pizzaFlavorRepository: Repository<PizzaFlavor>,
+        @InjectRepository(PizzaIngredient)
+        private readonly pizzaIngredientRepository: Repository<PizzaIngredient>,
+        @InjectRepository(SelectedPizzaFlavor)
+        private readonly selectedPizzaFlavorRepository: Repository<SelectedPizzaFlavor>,
+        @InjectRepository(SelectedPizzaIngredient)
+        private readonly selectedPizzaIngredientRepository: Repository<SelectedPizzaIngredient>,
     ) {}
 
     async create(createOrderItemDto: CreateOrderItemDto): Promise<OrderItem> {
         const order = await this.orderRepository.findOne({ where: { id: createOrderItemDto.orderId } });
         const product = await this.productRepository.findOne({ where: { id: createOrderItemDto.product.id } });
         const productVariant = createOrderItemDto.productVariant ? await this.productVariantRepository.findOne({ where: { id: createOrderItemDto.productVariant.id } }) : null;
-        const pizzaFlavor = createOrderItemDto.pizzaFlavorId ? await this.pizzaFlavorRepository.findOne({ where: { id: createOrderItemDto.pizzaFlavorId } }) : null;
 
         const orderItem = this.orderItemRepository.create({
             comments: createOrderItemDto.comments,
             order: order,
             product: product,
             productVariant: productVariant,
-            pizzaFlavor: pizzaFlavor,
             price: createOrderItemDto.price,
         });
 
@@ -68,6 +74,7 @@ export class OrderItemsService {
             }
         }
 
+        // Procesar selectedProductObservations
         if (createOrderItemDto.selectedProductObservations?.length) {
             for (const observationDto of createOrderItemDto.selectedProductObservations) {
                 const productObservation = await this.productObservationRepository.findOne({ where: { id: observationDto.productObservation.id } });
@@ -81,7 +88,35 @@ export class OrderItemsService {
             }
         }
 
-        return this.orderItemRepository.findOne({ where: { id: savedOrderItem.id }, relations: ['selectedModifiers', 'selectedProductObservations'] });
+        // Procesar selectedPizzaFlavors
+        if (createOrderItemDto.selectedPizzaFlavors?.length) {
+            for (const flavorDto of createOrderItemDto.selectedPizzaFlavors) {
+                const pizzaFlavor = await this.pizzaFlavorRepository.findOne({ where: { id: flavorDto.pizzaFlavor.id } });
+                if (pizzaFlavor) {
+                    const selectedPizzaFlavor = this.selectedPizzaFlavorRepository.create({
+                        orderItem: savedOrderItem,
+                        pizzaFlavor: pizzaFlavor,
+                    });
+                    await this.selectedPizzaFlavorRepository.save(selectedPizzaFlavor);
+                }
+            }
+        }
+
+        // Procesar selectedPizzaIngredients
+        if (createOrderItemDto.selectedPizzaIngredients?.length) {
+            for (const ingredientDto of createOrderItemDto.selectedPizzaIngredients) {
+                const pizzaIngredient = await this.pizzaIngredientRepository.findOne({ where: { id: ingredientDto.pizzaIngredient.id } });
+                if (pizzaIngredient) {
+                    const selectedPizzaIngredient = this.selectedPizzaIngredientRepository.create({
+                        orderItem: savedOrderItem,
+                        pizzaIngredient: pizzaIngredient,
+                    });
+                    await this.selectedPizzaIngredientRepository.save(selectedPizzaIngredient);
+                }
+            }
+        }
+
+        return this.orderItemRepository.findOne({ where: { id: savedOrderItem.id }, relations: ['selectedModifiers', 'selectedProductObservations', 'selectedPizzaFlavors', 'selectedPizzaIngredients', 'product', 'product.productVariants','product.modifierTypes', 'product.productObservationTypes', 'product.pizzaFlavors', 'product.pizzaIngredients'] });
     }
 
     async updateStatus(id: number, updateOrderItemStatusDto: UpdateOrderItemStatusDto): Promise<OrderItem> {

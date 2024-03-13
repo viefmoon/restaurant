@@ -13,10 +13,13 @@ import { ProductObservation } from 'src/product_observations/product-observation
 import { SelectedProductObservation } from 'src/selected_product_observations/selected-product-observation.entity';
 import { Modifier } from 'src/modifiers/modifier.entity';
 import { SelectedModifier } from 'src/selected_modifiers/selected-modifier.entity';
+import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
+import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
+import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, Table, Area, OrderItem, Product, ProductVariant, ProductObservation, SelectedProductObservation, Modifier, SelectedModifier, PizzaFlavor])], 
+  imports: [TypeOrmModule.forFeature([Order, Table, Area, OrderItem, Product, ProductVariant, ProductObservation, SelectedProductObservation, Modifier, SelectedModifier, PizzaFlavor, SelectedPizzaFlavor, PizzaIngredient, SelectedPizzaIngredient])], 
   providers: [OrdersService, OrderItemsService], 
   controllers: [OrdersController] 
 })

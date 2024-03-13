@@ -41,10 +41,12 @@ export class OrdersService {
         });
     
         const savedOrder = await this.orderRepository.save(order);
+        console.log("createOrderDto.orderItems", createOrderDto.orderItems);
     
-        // Crea OrderItems en cascada, asegurándote de que pasas los datos correctos
+        // Crea OrderItems en cascada, asegurándote de que pasas los datos correctos e imprime la respuesta de cada create
         for (const itemDto of createOrderDto.orderItems) {
-            await this.orderItemService.create({ ...itemDto, orderId: savedOrder.id });
+            const createdItem = await this.orderItemService.create({ ...itemDto, orderId: savedOrder.id });
+            console.log(createdItem);
         }
     
         return this.orderRepository.findOne({ where: { id: savedOrder.id }, relations: ['orderItems', 'table'] });
@@ -54,11 +56,13 @@ export class OrdersService {
             where: {
                 status: In([OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared]),
             },
-            relations: ['orderItems', 'table','area', 'orderItems.product', 'orderItems.productVariant', 
+            relations: ['orderItems', 'table','area', 'orderItems.product', 'orderItems.product.productVariants','orderItems.product.pizzaFlavors','orderItems.product.pizzaIngredients',
+            'orderItems.product.modifierTypes','orderItems.product.modifierTypes.modifiers','orderItems.product.productObservationTypes',
+            'orderItems.product.productObservationTypes.productObservations', 'orderItems.productVariant', 
             'orderItems.selectedModifiers', 'orderItems.selectedModifiers.modifier', 'orderItems.selectedProductObservations', 
-            'orderItems.selectedProductObservations.productObservation'],
+            'orderItems.selectedProductObservations.productObservation', 'orderItems.selectedPizzaFlavors', 'orderItems.selectedPizzaFlavors.pizzaFlavor', 'orderItems.selectedPizzaIngredients', 'orderItems.selectedPizzaIngredients.pizzaIngredient'],
         });
-        console.log(orders);
+        orders.forEach(order => console.log(order.orderItems));
         return orders;
     }
-}
+}1

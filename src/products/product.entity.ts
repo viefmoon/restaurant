@@ -3,8 +3,9 @@ import { Subcategory } from '../subcategories/subcategory.entity'
 import { ProductVariant } from '../product_variants/product-variant.entity'
 import { ModifierType } from '../modifier_types/modifier-type.entity'
 import { ProductObservationType } from '../product_observation_types/product-observation-type.entity'
-import { PizzaFlavor } from '../pizza_flavors/pizza-flavor.entity'
 import { OrderItem } from '../order_items/order-item.entity'
+import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
+import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 
 @Entity({ name: 'products' })
 export class Product {
@@ -31,9 +32,12 @@ export class Product {
 
     @OneToMany(() => ProductObservationType, productObservationType => productObservationType.product)
     productObservationTypes: ProductObservationType[];
-
+    
     @OneToMany(() => PizzaFlavor, pizzaFlavor => pizzaFlavor.product)
     pizzaFlavors: PizzaFlavor[];
+
+    @OneToMany(() => PizzaIngredient, pizzaIngredient => pizzaIngredient.product)
+    pizzaIngredients: PizzaIngredient[];
 
     @OneToMany(() => OrderItem, orderItem => orderItem.product)
     orderItems: OrderItem[];

@@ -8,9 +8,13 @@ import {
     IsInt 
 } from 'class-validator';
 import { Modifier } from 'src/modifiers/modifier.entity';
+import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
+import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 import { ProductObservation } from 'src/product_observations/product-observation.entity';
 import { ProductVariant } from 'src/product_variants/product-variant.entity';
 import { Product } from 'src/products/product.entity';
+import { PizzaHalf } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
+import { isReadable } from 'stream';
 
 
 export class SelectedModifierDto {
@@ -23,6 +27,20 @@ export class SelectedProductObservationDto {
     productObservation: ProductObservation; 
 }
 
+export class SelectedPizzaFlavorDto {
+    @IsNotEmpty()
+    pizzaFlavor: PizzaFlavor; 
+}
+
+export class SelectedPizzaIngredientDto {
+    @IsNotEmpty()
+    pizzaIngredient: PizzaIngredient; 
+
+    
+    @IsOptional()
+    half: PizzaHalf;
+}
+
 export class CreateOrderItemDto {
 
     @IsOptional()
@@ -31,15 +49,11 @@ export class CreateOrderItemDto {
     @IsOptional()
     orderId?: number;
 
-    @IsOptional()
-    product?: Product;
+    @IsNotEmpty()
+    product: Product;
 
     @IsOptional()
     productVariant?: ProductVariant;
-
-    
-    @IsOptional()
-    pizzaFlavorId?: number;
 
     @IsOptional()
     price: number;
@@ -55,5 +69,17 @@ export class CreateOrderItemDto {
     @ValidateNested({ each: true })
     @Type(() => SelectedProductObservationDto)
     selectedProductObservations?: SelectedProductObservationDto[];
+
+    @IsArray()
+    @IsOptional()
+    @ValidateNested({ each: true })
+    @Type(() => SelectedPizzaFlavorDto)
+    selectedPizzaFlavors?: SelectedPizzaFlavorDto[];
+
+    @IsArray()
+    @IsOptional()
+    @ValidateNested({ each: true })
+    @Type(() => SelectedPizzaIngredientDto)
+    selectedPizzaIngredients?: SelectedPizzaIngredientDto[];
 }
 

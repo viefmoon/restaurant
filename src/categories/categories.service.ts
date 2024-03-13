@@ -10,10 +10,9 @@ export class CategoriesService {
         private readonly categoryRepository: Repository<Category>,
     ) {}
 
-
     async findAllWithSubcategoriesAndProducts(): Promise<Category[]> {
         try {
-            return this.categoryRepository.find({
+            const categories = await this.categoryRepository.find({
                 relations: [
                     'subcategories',
                     'subcategories.products',
@@ -23,11 +22,13 @@ export class CategoriesService {
                     'subcategories.products.productObservationTypes',
                     'subcategories.products.productObservationTypes.productObservations',
                     'subcategories.products.pizzaFlavors',
+                    'subcategories.products.pizzaIngredients',
                 ],
             });
+            console.log(categories);
+            return categories;
         } catch (error) {
             throw new HttpException('Error retrieving categories', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 }
