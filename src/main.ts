@@ -8,6 +8,7 @@ import { seedRoles } from './seeders/role.seeder';
 import { seedUsers } from './seeders/user.seeder';
 import { seedProducts } from './seeders/product.seeder';
 import { seedTables } from './seeders/table.seeder';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,7 +17,6 @@ async function bootstrap() {
   const dataSource = app.get(DataSource);
 
   if (process.env.SEED_DB === 'true') {
-    
     try {
       await seedRoles(dataSource);
       await seedUsers(dataSource);
@@ -27,6 +27,9 @@ async function bootstrap() {
       console.error('Error ejecutando seeders:', error);
     }
   }
+
+  // Configura Socket.IO
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   await app.listen(3000, '192.168.100.32' || 'localhost' || '192.168.100.32');
 }

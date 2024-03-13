@@ -9,7 +9,7 @@ import { AreasModule } from './areas/areas.module';
 import { TablesModule } from './tables/tables.module';
 import { CategoriesModule } from './categories/categories.module';
 import { OrdersModule } from './orders/orders.module';
-
+import { AppGateway } from './app.gateway';
 
 @Module({
   imports: [
@@ -32,6 +32,6 @@ import { OrdersModule } from './orders/orders.module';
     OrdersModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AppGateway],
 })
 export class AppModule {}

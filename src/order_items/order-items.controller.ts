@@ -12,7 +12,7 @@ export class OrderItemsController {
     }
 
     @Put(':id/status')
-    updateStatus(@Param('id', ParseIntPipe) id: number, @Body() updateOrderItemStatusDto: UpdateOrderItemStatusDto) {
-        return this.orderItemsService.updateStatus(id, updateOrderItemStatusDto);
+    updateOrderItemStatus(@Param('id', ParseIntPipe) id: number, @Body() updateOrderItemStatusDto: UpdateOrderItemStatusDto) {
+        return this.orderItemsService.updateOrderItemStatus(id, updateOrderItemStatusDto);
     }
 }

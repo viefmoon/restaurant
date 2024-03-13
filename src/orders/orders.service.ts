@@ -5,6 +5,8 @@ import { Order, OrderStatus } from './order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemsService } from 'src/order_items/order-items.service';
 import { Table } from 'src/tables/table.entity';
+import { AppGateway } from '../app.gateway';
+import { OrderItem, OrderItemStatus } from 'src/order_items/order-item.entity';
 
 @Injectable()
 export class OrdersService {
@@ -13,7 +15,10 @@ export class OrdersService {
         private readonly orderRepository: Repository<Order>,
         @InjectRepository(Table)
         private readonly tableRepository: Repository<Table>,
-        private readonly orderItemService: OrderItemsService, // Asume que tienes este servicio
+        @InjectRepository(Table)
+        private readonly orderItemRepository: Repository<OrderItem>,
+        private readonly orderItemService: OrderItemsService,
+        private readonly appGateway: AppGateway,
     ) {}
 
     async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -49,8 +54,14 @@ export class OrdersService {
             console.log(createdItem);
         }
     
-        return this.orderRepository.findOne({ where: { id: savedOrder.id }, relations: ['orderItems', 'table'] });
+        const completeOrder = await this.orderRepository.findOne({ where: { id: savedOrder.id }, relations: ['orderItems', 'table'] });
+
+        this.appGateway.emitOrderCreated(completeOrder); // Asegúrate de que este método exista en tu AppGateway
+    
+        return completeOrder;
     }
+
+
     async getOpenOrders(): Promise<Order[]> {
         const orders = await this.orderRepository.find({
             where: {
@@ -65,4 +76,28 @@ export class OrdersService {
         orders.forEach(order => console.log(order.orderItems));
         return orders;
     }
-}1
+
+    // async updateOrderStatus(orderId: number, newStatus: OrderStatus): Promise<Order> {
+    //     const order = await this.orderRepository.findOne({ where: { id: orderId }, relations: ['orderItems'] });
+    
+    //     if (!order) {
+    //         throw new Error('Order not found');
+    //     }
+    
+    //     order.status = newStatus;
+    //     await this.orderRepository.save(order);
+    
+    //     // Si la orden cambia a "en preparación" o "preparado", actualiza también los ítems de orden
+    //     if ([OrderStatus.in_preparation, OrderStatus.prepared].includes(newStatus)) {
+    //         await Promise.all(order.orderItems.map(async (item) => {
+    //             item.status = newStatus === OrderStatus.in_preparation ? OrderItemStatus.inPreparation : OrderItemStatus.prepared;
+    //             await this.orderItemRepository.save(item);
+    //         }));
+    //     }
+    
+    //     // Emitir evento a través del WebSocket
+    //     this.appGateway.emitOrderStatusUpdated(order);
+    
+    //     return this.orderRepository.findOne({ where: { id: orderId }, relations: ['orderItems', 'table'] });
+    // }
+}

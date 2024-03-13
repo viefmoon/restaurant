@@ -3,3 +3,7 @@
 
 # No ignorar archivos .entity.ts
 !*.entity.ts
+!*.controller.js
+!*.service.js
+!*.module.js
+

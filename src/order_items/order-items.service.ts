@@ -15,6 +15,7 @@ import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
+import { AppGateway } from '../app.gateway'; // Import AppGateway
 
 @Injectable()
 export class OrderItemsService {
@@ -43,6 +44,7 @@ export class OrderItemsService {
         private readonly selectedPizzaFlavorRepository: Repository<SelectedPizzaFlavor>,
         @InjectRepository(SelectedPizzaIngredient)
         private readonly selectedPizzaIngredientRepository: Repository<SelectedPizzaIngredient>,
+        private appGateway: AppGateway, // Inject AppGateway
     ) {}
 
     async create(createOrderItemDto: CreateOrderItemDto): Promise<OrderItem> {
@@ -119,12 +121,45 @@ export class OrderItemsService {
         return this.orderItemRepository.findOne({ where: { id: savedOrderItem.id }, relations: ['selectedModifiers', 'selectedProductObservations', 'selectedPizzaFlavors', 'selectedPizzaIngredients', 'product', 'product.productVariants','product.modifierTypes', 'product.productObservationTypes', 'product.pizzaFlavors', 'product.pizzaIngredients'] });
     }
 
-    async updateStatus(id: number, updateOrderItemStatusDto: UpdateOrderItemStatusDto): Promise<OrderItem> {
-        const orderItem = await this.orderItemRepository.findOne({ where: { id: id } });
-
+    async updateOrderItemStatus(id: number, updateOrderItemStatusDto: UpdateOrderItemStatusDto): Promise<OrderItem> {
+        const orderItem = await this.orderItemRepository.findOne({
+            where: { id: id },
+            relations: ['order', 'order.orderItems', 'product', 'product.subcategory', 'product.subcategory.category'],
+        });
+    
+        if (!orderItem) {
+            throw new Error('Order item not found');
+        }
+    
         orderItem.status = updateOrderItemStatusDto.status;
         await this.orderItemRepository.save(orderItem);
+    
+        // Aquí, determina a qué pantalla emitir el evento basado en la lógica de tu negocio
+        const screenType = this.determineScreenType(orderItem); // Asume que tienes esta función implementada
+        // Emitir el evento de actualización de OrderItem a la pantalla relevante
+        this.appGateway.emitOrderItemUpdateMinimal(screenType, orderItem.id, orderItem.status);
+    
         return orderItem;
     }
-}
 
+    determineScreenType(orderItem: OrderItem): string {
+        const category = orderItem.product.subcategory.category.name;
+      
+        if (category === 'Bebidas') {
+          return 'barScreen';
+        } else {
+          const containsPizzaOrEntradas = orderItem.order.orderItems.some(item => {
+            const subcategory = item.product.subcategory.name;
+            return subcategory === 'Pizzas' || subcategory === 'Entradas';
+          });
+      
+          if (containsPizzaOrEntradas) {
+            return 'pizzaScreen';
+          } else if (category === 'Comida') {
+            return 'burgerScreen';
+          }
+        }
+      
+        return 'generalScreen';
+      }
+}
