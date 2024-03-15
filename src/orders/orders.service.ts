@@ -56,7 +56,7 @@ export class OrdersService {
     
         const completeOrder = await this.orderRepository.findOne({ where: { id: savedOrder.id }, relations: ['orderItems', 'table'] });
 
-        this.appGateway.emitOrderCreated(completeOrder); // Asegúrate de que este método exista en tu AppGateway
+       // this.appGateway.emitOrderCreated(completeOrder); // Asegúrate de que este método exista en tu AppGateway
     
         return completeOrder;
     }
@@ -77,27 +77,27 @@ export class OrdersService {
         return orders;
     }
 
-    // async updateOrderStatus(orderId: number, newStatus: OrderStatus): Promise<Order> {
-    //     const order = await this.orderRepository.findOne({ where: { id: orderId }, relations: ['orderItems'] });
+    async updateOrderStatus(orderId: number, newStatus: OrderStatus): Promise<Order> {
+        const order = await this.orderRepository.findOne({ where: { id: orderId }, relations: ['orderItems'] });
     
-    //     if (!order) {
-    //         throw new Error('Order not found');
-    //     }
+        if (!order) {
+            throw new Error('Order not found');
+        }
     
-    //     order.status = newStatus;
-    //     await this.orderRepository.save(order);
+        order.status = newStatus;
+        await this.orderRepository.save(order);
     
-    //     // Si la orden cambia a "en preparación" o "preparado", actualiza también los ítems de orden
-    //     if ([OrderStatus.in_preparation, OrderStatus.prepared].includes(newStatus)) {
-    //         await Promise.all(order.orderItems.map(async (item) => {
-    //             item.status = newStatus === OrderStatus.in_preparation ? OrderItemStatus.inPreparation : OrderItemStatus.prepared;
-    //             await this.orderItemRepository.save(item);
-    //         }));
-    //     }
+        // Si la orden cambia a "en preparación" o "preparado", actualiza también los ítems de orden
+        if ([OrderStatus.in_preparation, OrderStatus.prepared].includes(newStatus)) {
+            await Promise.all(order.orderItems.map(async (item) => {
+                item.status = newStatus === OrderStatus.in_preparation ? OrderItemStatus.inPreparation : OrderItemStatus.prepared;
+                await this.orderItemRepository.save(item);
+            }));
+        }
     
-    //     // Emitir evento a través del WebSocket
-    //     this.appGateway.emitOrderStatusUpdated(order);
+        // Emitir evento a través del WebSocket
+        //this.appGateway.emitOrderStatusUpdated(order);
     
-    //     return this.orderRepository.findOne({ where: { id: orderId }, relations: ['orderItems', 'table'] });
-    // }
+        return this.orderRepository.findOne({ where: { id: orderId }, relations: ['orderItems', 'table'] });
+    }
 }

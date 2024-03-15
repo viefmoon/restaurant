@@ -31,7 +31,7 @@ async function bootstrap() {
   // Configura Socket.IO
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  await app.listen(3000, '192.168.100.32' || 'localhost' || '192.168.100.32');
+  await app.listen(3000, '192.168.100.32');
 }
 
 bootstrap();

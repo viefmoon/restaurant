@@ -137,7 +137,7 @@ export class OrderItemsService {
         // Aquí, determina a qué pantalla emitir el evento basado en la lógica de tu negocio
         const screenType = this.determineScreenType(orderItem); // Asume que tienes esta función implementada
         // Emitir el evento de actualización de OrderItem a la pantalla relevante
-        this.appGateway.emitOrderItemUpdateMinimal(screenType, orderItem.id, orderItem.status);
+        //this.appGateway.emitOrderItemUpdateMinimal(screenType, orderItem.id, orderItem.status);
     
         return orderItem;
     }
