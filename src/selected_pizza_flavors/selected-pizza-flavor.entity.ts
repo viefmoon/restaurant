@@ -7,7 +7,6 @@ export class SelectedPizzaFlavor {
     @PrimaryGeneratedColumn()
     id: number;
 
-
     @ManyToOne(() => OrderItem, orderItem => orderItem.selectedPizzaFlavors)
     orderItem: OrderItem;
 

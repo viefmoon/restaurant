@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Put, Delete, Param, ParseIntPipe } from '@nestjs/common';
 import { OrderItemsService } from './order-items.service';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
-import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
+import { OrderItemStatus } from './order-item.entity';
 
 @Controller('order-items')
 export class OrderItemsController {
@@ -12,7 +12,7 @@ export class OrderItemsController {
     }
 
     @Put(':id/status')
-    updateOrderItemStatus(@Param('id', ParseIntPipe) id: number, @Body() updateOrderItemStatusDto: UpdateOrderItemStatusDto) {
-        return this.orderItemsService.updateOrderItemStatus(id, updateOrderItemStatusDto);
+    updateOrderItemStatus(@Param('id', ParseIntPipe) id: number, @Body() status: OrderItemStatus) {
+        return this.orderItemsService.updateOrderItemStatus(id, status);
     }
 }

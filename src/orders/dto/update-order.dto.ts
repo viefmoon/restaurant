@@ -1,26 +1,50 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDate } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDate, IsEnum, IsArray, ValidateNested, IsInt } from 'class-validator';
+import { OrderType } from '../order.entity';
+import { Type } from 'class-transformer';
+import { Area } from 'src/areas/area.entity';
+import { Table } from 'src/tables/table.entity';
+import { UpdateOrderItemDto } from 'src/order_items/dto/update-order-item.dto';
 
 export class UpdateOrderDto {
     @IsNotEmpty()
-    @IsString()
-    orderType?: string;
+    @IsInt()
+    id: number;
 
-    @IsNotEmpty()
-    @IsString()
-    status?: string;
-
-    @IsNumber()
-    amountPaid?: number;
-
-    @IsNumber()
-    total?: number;
+    @IsEnum(OrderType)
+    orderType: OrderType;
 
     @IsOptional()
     @IsString()
     comments?: string;
 
-    // Incluye tableId si la entidad Table está disponible
-    // @IsOptional()
-    // @IsNumber()
-    // tableId?: number;
+    @IsOptional()
+    @IsString()
+    deliveryAddress?: string;
+
+    @IsOptional()
+    @IsDate()
+    @Type(() => Date) 
+    scheduledDeliveryTime?: Date;
+
+    @IsOptional()
+    @IsString()
+    phoneNumber?: string;
+
+    @IsOptional()
+    @IsString()
+    customerName?: string;
+
+    @IsOptional()
+    totalCost?: number;
+
+    @IsOptional()
+    area?: Area;
+
+    @IsOptional()
+    table?: Table;
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => UpdateOrderItemDto)
+    orderItems: UpdateOrderItemDto[];
 }

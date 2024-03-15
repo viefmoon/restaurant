@@ -20,7 +20,7 @@ export class CreateOrderDto {
     
     @IsOptional()
     @IsDate()
-    @Type(() => Date) // Asegura la conversión de la cadena a Date
+    @Type(() => Date) 
     scheduledDeliveryTime?: Date;
 
     @IsOptional()

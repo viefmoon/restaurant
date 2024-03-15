@@ -31,7 +31,8 @@ async function bootstrap() {
   // Configura Socket.IO
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  await app.listen(3000, '192.168.100.32');
+  await app.listen(process.env.PORT, process.env.STATIC_IP);
+  console.log(`Aplicación en ejecución en http://${process.env.STATIC_IP}:${process.env.PORT}`);
 }
 
 bootstrap();

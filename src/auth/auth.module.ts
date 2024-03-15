@@ -4,7 +4,6 @@ import { AuthController } from './auth.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/user.entity';
 import { JwtModule } from '@nestjs/jwt';
-import { jwtConstants } from './jwt/jwt.constants';
 import { JwtStrategy } from './jwt/jwt.strategy';
 import { RolesService } from 'src/roles/roles.service';
 import { Rol } from 'src/roles/rol.entity';
@@ -13,8 +12,8 @@ import { Rol } from 'src/roles/rol.entity';
   imports: [ 
     TypeOrmModule.forFeature([User, Rol]),
     JwtModule.register({
-      secret: jwtConstants.secret,
-      signOptions: { expiresIn: '2d' },
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN },
     }),
   ],
   providers: [AuthService, RolesService, JwtStrategy],

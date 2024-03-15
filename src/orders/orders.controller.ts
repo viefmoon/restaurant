@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderStatusDto } from './dto/update-order-status.dto copy';
+import { OrderStatus } from './order.entity';
 
 @Controller('orders')
 export class OrdersController {
@@ -16,7 +16,7 @@ export class OrdersController {
     }
 
     @Patch(':id/status')
-    async updateOrderStatus(@Param('id', ParseIntPipe) id: number, @Body() updateOrderStatusDto: UpdateOrderStatusDto) {
-    return this.ordersService.updateOrderStatus(id, updateOrderStatusDto.status);
+    async updateOrderStatus(@Param('id', ParseIntPipe) id: number, @Body() status: OrderStatus) {
+    return this.ordersService.updateOrderStatus(id, status);
     }
 }

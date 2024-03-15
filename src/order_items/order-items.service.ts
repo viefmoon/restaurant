@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { OrderItem } from './order-item.entity';
+import { OrderItem, OrderItemStatus } from './order-item.entity';
 import { SelectedModifier } from 'src/selected_modifiers/selected-modifier.entity';
 import { SelectedProductObservation } from 'src/selected_product_observations/selected-product-observation.entity';
 import { Modifier } from 'src/modifiers/modifier.entity';
@@ -10,12 +10,12 @@ import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { Order } from 'src/orders/order.entity';
 import { Product } from 'src/products/product.entity';
 import { ProductVariant } from 'src/product_variants/product-variant.entity';
-import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
 import { AppGateway } from '../app.gateway'; // Import AppGateway
+import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 
 @Injectable()
 export class OrderItemsService {
@@ -53,10 +53,10 @@ export class OrderItemsService {
         const productVariant = createOrderItemDto.productVariant ? await this.productVariantRepository.findOne({ where: { id: createOrderItemDto.productVariant.id } }) : null;
 
         const orderItem = this.orderItemRepository.create({
-            comments: createOrderItemDto.comments,
             order: order,
             product: product,
             productVariant: productVariant,
+            comments: createOrderItemDto.comments,
             price: createOrderItemDto.price,
         });
 
@@ -121,45 +121,134 @@ export class OrderItemsService {
         return this.orderItemRepository.findOne({ where: { id: savedOrderItem.id }, relations: ['selectedModifiers', 'selectedProductObservations', 'selectedPizzaFlavors', 'selectedPizzaIngredients', 'product', 'product.productVariants','product.modifierTypes', 'product.productObservationTypes', 'product.pizzaFlavors', 'product.pizzaIngredients'] });
     }
 
-    async updateOrderItemStatus(id: number, updateOrderItemStatusDto: UpdateOrderItemStatusDto): Promise<OrderItem> {
+    async update(orderItemId: number, updateOrderItemDto: UpdateOrderItemDto): Promise<OrderItem> {
+        const orderItem = await this.orderItemRepository.findOne({ where: { id: orderItemId }, relations: ['selectedModifiers', 'selectedProductObservations', 'selectedPizzaFlavors', 'selectedPizzaIngredients'] });
+    
+        if (!orderItem) {
+            throw new Error('OrderItem not found');
+        }
+    
+        orderItem.productVariant = updateOrderItemDto.productVariant ?? orderItem.productVariant;
+        orderItem.comments = updateOrderItemDto.comments ?? orderItem.comments;
+        orderItem.price = updateOrderItemDto.price ?? orderItem.price;
+    
+        // Actualizar selectedModifiers
+        await this.selectedModifierRepository.delete({ orderItem: { id: orderItemId } });
+        if (updateOrderItemDto.selectedModifiers?.length) {
+            for (const modifierDto of updateOrderItemDto.selectedModifiers) {
+                const modifier = await this.modifierRepository.findOne({ where: { id: modifierDto.modifier.id } });
+                if (modifier) {
+                    const selectedModifier = this.selectedModifierRepository.create({
+                        orderItem: orderItem,
+                        modifier: modifier,
+                    });
+                    await this.selectedModifierRepository.save(selectedModifier);
+                }
+            }
+        }
+    
+        // Actualizar selectedProductObservations
+        await this.selectedProductObservationRepository.delete({ orderItem: { id: orderItemId } });
+        if (updateOrderItemDto.selectedProductObservations?.length) {
+            for (const observationDto of updateOrderItemDto.selectedProductObservations) {
+                const productObservation = await this.productObservationRepository.findOne({ where: { id: observationDto.productObservation.id } });
+                if (productObservation) {
+                    const selectedProductObservation = this.selectedProductObservationRepository.create({
+                        orderItem: orderItem,
+                        productObservation: productObservation,
+                    });
+                    await this.selectedProductObservationRepository.save(selectedProductObservation);
+                }
+            }
+        }
+    
+        // Actualizar selectedPizzaFlavors
+        await this.selectedPizzaFlavorRepository.delete({ orderItem: { id: orderItemId } });
+        if (updateOrderItemDto.selectedPizzaFlavors?.length) {
+            for (const flavorDto of updateOrderItemDto.selectedPizzaFlavors) {
+                const pizzaFlavor = await this.pizzaFlavorRepository.findOne({ where: { id: flavorDto.pizzaFlavor.id } });
+                if (pizzaFlavor) {
+                    const selectedPizzaFlavor = this.selectedPizzaFlavorRepository.create({
+                        orderItem: orderItem,
+                        pizzaFlavor: pizzaFlavor,
+                    });
+                    await this.selectedPizzaFlavorRepository.save(selectedPizzaFlavor);
+                }
+            }
+        }
+    
+        // Actualizar selectedPizzaIngredients
+        await this.selectedPizzaIngredientRepository.delete({ orderItem: { id: orderItemId } });
+        if (updateOrderItemDto.selectedPizzaIngredients?.length) {
+            for (const ingredientDto of updateOrderItemDto.selectedPizzaIngredients) {
+                const pizzaIngredient = await this.pizzaIngredientRepository.findOne({ where: { id: ingredientDto.pizzaIngredient.id } });
+                if (pizzaIngredient) {
+                    const selectedPizzaIngredient = this.selectedPizzaIngredientRepository.create({
+                        orderItem: orderItem,
+                        pizzaIngredient: pizzaIngredient,
+                        half: ingredientDto.half,
+                });
+                await this.selectedPizzaIngredientRepository.save(selectedPizzaIngredient);
+            }
+        }
+    }
+
+    await this.orderItemRepository.save(orderItem);
+
+    return this.orderItemRepository.findOne({ 
+        where: { id: orderItemId }, 
+        relations: [
+            'selectedModifiers', 
+            'selectedModifiers.modifier',
+            'selectedProductObservations', 
+            'selectedProductObservations.productObservation',
+            'selectedPizzaFlavors', 
+            'selectedPizzaFlavors.pizzaFlavor',
+            'selectedPizzaIngredients', 
+            'selectedPizzaIngredients.pizzaIngredient',
+            'product', 
+            'product.productVariants',
+            'product.modifierTypes', 
+            'product.productObservationTypes', 
+            'product.pizzaFlavors', 
+            'product.pizzaIngredients'
+        ] 
+    });
+}
+
+    async updateOrderItemStatus(orderItemId: number, newStatus: OrderItemStatus): Promise<OrderItem> {
+        // Primero, encontrar el orderItem y su orden correspondiente
         const orderItem = await this.orderItemRepository.findOne({
-            where: { id: id },
-            relations: ['order', 'order.orderItems', 'product', 'product.subcategory', 'product.subcategory.category'],
+            where: { id: orderItemId },
+            relations: ['order']
         });
     
         if (!orderItem) {
-            throw new Error('Order item not found');
+            throw new Error('OrderItem not found');
         }
     
-        orderItem.status = updateOrderItemStatusDto.status;
+        // Actualizar el estado del orderItem
+        orderItem.status = newStatus;
         await this.orderItemRepository.save(orderItem);
     
-        // Aquí, determina a qué pantalla emitir el evento basado en la lógica de tu negocio
-        const screenType = this.determineScreenType(orderItem); // Asume que tienes esta función implementada
-        // Emitir el evento de actualización de OrderItem a la pantalla relevante
-        //this.appGateway.emitOrderItemUpdateMinimal(screenType, orderItem.id, orderItem.status);
+        // Luego, obtener todos los orderItems relacionados con la orden, incluyendo las relaciones necesarias
+        const orderWithItems = await this.orderRepository.findOne({
+            where: { id: orderItem.order.id },
+            relations: [
+                'orderItems',
+                'orderItems.product',
+                'orderItems.product.subcategory',
+                'orderItems.product.subcategory.category'
+            ]
+        });
+    
+        if (!orderWithItems) {
+            throw new Error('Order not found');
+        }
+    
+        // Ahora pasas la orden completa y el ID del orderItem actualizado
+        this.appGateway.emitOrderItemStatusUpdated(orderWithItems, orderItemId);
     
         return orderItem;
     }
-
-    determineScreenType(orderItem: OrderItem): string {
-        const category = orderItem.product.subcategory.category.name;
-      
-        if (category === 'Bebidas') {
-          return 'barScreen';
-        } else {
-          const containsPizzaOrEntradas = orderItem.order.orderItems.some(item => {
-            const subcategory = item.product.subcategory.name;
-            return subcategory === 'Pizzas' || subcategory === 'Entradas';
-          });
-      
-          if (containsPizzaOrEntradas) {
-            return 'pizzaScreen';
-          } else if (category === 'Comida') {
-            return 'burgerScreen';
-          }
-        }
-      
-        return 'generalScreen';
-      }
 }

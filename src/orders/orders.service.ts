@@ -7,6 +7,7 @@ import { OrderItemsService } from 'src/order_items/order-items.service';
 import { Table } from 'src/tables/table.entity';
 import { AppGateway } from '../app.gateway';
 import { OrderItem, OrderItemStatus } from 'src/order_items/order-item.entity';
+import { UpdateOrderDto } from './dto/update-order.dto';
 
 @Injectable()
 export class OrdersService {
@@ -61,6 +62,62 @@ export class OrdersService {
         return completeOrder;
     }
 
+    async updateOrder(orderId: number, updateOrderDto: UpdateOrderDto): Promise<Order> {
+        const order = await this.orderRepository.findOne({
+            where: { id: orderId },
+            relations: ['orderItems', 'table']
+        });
+    
+        if (!order) {
+            throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+        }
+    
+        // Actualiza los campos de la orden
+        order.orderType = updateOrderDto.orderType;
+        order.scheduledDeliveryTime = updateOrderDto.scheduledDeliveryTime;
+        order.totalCost = updateOrderDto.totalCost;
+        order.comments = updateOrderDto.comments;
+        order.phoneNumber = updateOrderDto.phoneNumber;
+        order.deliveryAddress = updateOrderDto.deliveryAddress;
+        order.customerName = updateOrderDto.customerName;
+        order.area = updateOrderDto.area;
+        order.table = updateOrderDto.table;
+    
+        await this.orderRepository.save(order);
+    
+        // Actualiza los OrderItems existentes o crea nuevos si es necesario
+        const existingItemIds = order.orderItems.map(item => item.id);
+        const updatedOrNewItems = updateOrderDto.orderItems.map(async itemDto => {
+            if (itemDto.id && existingItemIds.includes(itemDto.id)) {
+                // Actualiza el OrderItem existente
+                return await this.orderItemService.update(itemDto.id, itemDto);
+            } else {
+                // Crea un nuevo OrderItem si no tiene ID o el ID no está en los existentes
+                return await this.orderItemService.create({ ...itemDto, orderId: order.id });
+            }
+        });
+    
+        await Promise.all(updatedOrNewItems);
+    
+        // Opcional: Eliminar los OrderItems que no están en updateOrderDto
+        const newItemIds = updateOrderDto.orderItems.filter(item => item.id).map(item => item.id);
+        const itemsToDelete = existingItemIds.filter(id => !newItemIds.includes(id));
+        if (itemsToDelete.length > 0) {
+            await this.orderItemRepository.delete(itemsToDelete);
+        }
+    
+        // Recupera la orden actualizada con sus OrderItems actualizados
+        const updatedOrder = await this.orderRepository.findOne({
+            where: { id: orderId },
+            relations: ['orderItems', 'table']
+        });
+
+        // Llama al método emitOrderUpdated del AppGateway con el ID de la orden actualizada
+        this.appGateway.emitOrderUpdated(updatedOrder.id);
+    
+        return updatedOrder;
+    }
+
 
     async getOpenOrders(): Promise<Order[]> {
         const orders = await this.orderRepository.find({
@@ -78,26 +135,49 @@ export class OrdersService {
     }
 
     async updateOrderStatus(orderId: number, newStatus: OrderStatus): Promise<Order> {
-        const order = await this.orderRepository.findOne({ where: { id: orderId }, relations: ['orderItems'] });
+        const order = await this.orderRepository.createQueryBuilder('order')
+        .leftJoinAndSelect('order.orderItems', 'orderItem')
+        .leftJoinAndSelect('orderItem.product', 'product')
+        .leftJoinAndSelect('product.subcategory', 'subcategory')
+        .leftJoinAndSelect('subcategory.category', 'category')
+        .select([
+            'order.id', 'order.status', 
+            'orderItem.id', 'orderItem.status', 
+            'subcategory.id','subcategory.name', 
+            'category.id','category.name' 
+        ])
+        .where('order.id = :orderId', { orderId })
+        .getOne();
     
-        if (!order) {
-            throw new Error('Order not found');
-        }
+    if (!order) {
+        throw new Error('Order not found');
+    }
     
         order.status = newStatus;
-        await this.orderRepository.save(order);
     
-        // Si la orden cambia a "en preparación" o "preparado", actualiza también los ítems de orden
-        if ([OrderStatus.in_preparation, OrderStatus.prepared].includes(newStatus)) {
+        if ([OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared].includes(newStatus)) {
             await Promise.all(order.orderItems.map(async (item) => {
-                item.status = newStatus === OrderStatus.in_preparation ? OrderItemStatus.inPreparation : OrderItemStatus.prepared;
+                switch (newStatus) {
+                    case OrderStatus.created:
+                        item.status = OrderItemStatus.created;
+                        break;
+                    case OrderStatus.in_preparation:
+                        item.status = OrderItemStatus.inPreparation;
+                        break;
+                    case OrderStatus.prepared:
+                        item.status = OrderItemStatus.prepared;
+                        break;
+                    default:
+                        break;
+                }
                 await this.orderItemRepository.save(item);
             }));
         }
     
-        // Emitir evento a través del WebSocket
-        //this.appGateway.emitOrderStatusUpdated(order);
+        await this.orderRepository.save(order);
     
-        return this.orderRepository.findOne({ where: { id: orderId }, relations: ['orderItems', 'table'] });
+        this.appGateway.emitOrderStatusUpdated(order);
+    
+        return order;
     }
 }
