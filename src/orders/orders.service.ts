@@ -1,13 +1,16 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { Order, OrderStatus } from './order.entity';
+import { Order, OrderPreparationStatus, OrderStatus } from './order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemsService } from 'src/order_items/order-items.service';
 import { Table } from 'src/tables/table.entity';
 import { AppGateway } from '../app.gateway';
 import { OrderItem, OrderItemStatus } from 'src/order_items/order-item.entity';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { Product } from 'src/products/product.entity';
+import { OrderUpdate } from 'src/order_updates/order-update.entity';
+import { OrderItemUpdate } from 'src/order_item_updates/order-item-update.entity';
 
 @Injectable()
 export class OrdersService {
@@ -16,8 +19,14 @@ export class OrdersService {
         private readonly orderRepository: Repository<Order>,
         @InjectRepository(Table)
         private readonly tableRepository: Repository<Table>,
-        @InjectRepository(Table)
+        @InjectRepository(OrderItem)
         private readonly orderItemRepository: Repository<OrderItem>,
+        @InjectRepository(Product)
+        private readonly productRepository: Repository<Product>,
+        @InjectRepository(OrderUpdate)
+        private readonly orderUpdateRepository: Repository<OrderUpdate>,
+        @InjectRepository(OrderItemUpdate)
+        private readonly orderItemUpdateRepository: Repository<OrderItemUpdate>,
         private readonly orderItemService: OrderItemsService,
         private readonly appGateway: AppGateway,
     ) {}
@@ -32,9 +41,54 @@ export class OrdersService {
             }
         }
     
+        // Paso 1: Consulta los productos por ID
+        const productIds = createOrderDto.orderItems.map(item => item.product.id);
+        const productsWithDetails = await this.productRepository.find({
+            where: { id: In(productIds) },
+            relations: ['subcategory', 'subcategory.category'],
+        });
+
+
+        // Paso 2: Reemplaza los orderItems con la información completa
+        const orderItemsWithDetails = createOrderDto.orderItems.map(item => {
+            const productDetail = productsWithDetails.find(product => product.id === item.product.id);
+            return {
+                ...item,
+                product: productDetail,
+            };
+        });
+
+        // Inicializa los estados de preparación
+        let barPreparationStatus = OrderPreparationStatus.not_required;
+        let burgerPreparationStatus = OrderPreparationStatus.not_required;
+        let pizzaPreparationStatus = OrderPreparationStatus.not_required;
+    
+        // Verifica si la orden contiene ítems de pizza
+        const containsPizzaorEntradasItems = orderItemsWithDetails.some(itemDto => itemDto.product.subcategory.name === 'Pizzas' || itemDto.product.subcategory.name === 'Entradas');
+        // Determina los estados de preparación basados en los orderItems
+        for (const itemDto of orderItemsWithDetails) {
+            if (itemDto.product.subcategory.category.name === 'Bebida') {
+                barPreparationStatus = OrderPreparationStatus.created;
+            } else if (itemDto.product.subcategory.category.name === 'Comida') {
+                if (containsPizzaorEntradasItems) {
+                    pizzaPreparationStatus = OrderPreparationStatus.created;
+                } else {
+                    // Si no hay pizzas, se asignan segn la subcategoría
+                    if (itemDto.product.subcategory.name === 'Hamburguesas' || itemDto.product.subcategory.name === 'Ensaladas') {
+                        burgerPreparationStatus = OrderPreparationStatus.created;
+                    }
+                }
+            }
+        }
+
+    
         const order = this.orderRepository.create({
             ...createOrderDto,
             orderType: createOrderDto.orderType,
+            status: OrderStatus.created,
+            barPreparationStatus: barPreparationStatus,
+            burgerPreparationStatus: burgerPreparationStatus,
+            pizzaPreparationStatus: pizzaPreparationStatus,
             totalCost: createOrderDto.totalCost,
             comments: createOrderDto.comments,
             scheduledDeliveryTime: createOrderDto.scheduledDeliveryTime,
@@ -42,27 +96,23 @@ export class OrdersService {
             customerName: createOrderDto.customerName,
             area: createOrderDto.area,
             table: createOrderDto.table,
-
+    
             orderItems: [], 
         });
     
         const savedOrder = await this.orderRepository.save(order);
-        console.log("createOrderDto.orderItems", createOrderDto.orderItems);
     
-        // Crea OrderItems en cascada, asegurándote de que pasas los datos correctos e imprime la respuesta de cada create
-        for (const itemDto of createOrderDto.orderItems) {
-            const createdItem = await this.orderItemService.create({ ...itemDto, orderId: savedOrder.id });
-            console.log(createdItem);
+        for (const itemDto of orderItemsWithDetails) {
+            await this.orderItemService.create({ ...itemDto, orderId: savedOrder.id });
         }
     
         const completeOrder = await this.orderRepository.findOne({ where: { id: savedOrder.id }, relations: ['orderItems', 'table'] });
-
-       // this.appGateway.emitOrderCreated(completeOrder); // Asegúrate de que este método exista en tu AppGateway
-    
+        console.log("completeOrder", completeOrder);
         return completeOrder;
     }
 
     async updateOrder(orderId: number, updateOrderDto: UpdateOrderDto): Promise<Order> {
+        console.log(updateOrderDto);
         const order = await this.orderRepository.findOne({
             where: { id: orderId },
             relations: ['orderItems', 'table']
@@ -85,15 +135,40 @@ export class OrdersService {
     
         await this.orderRepository.save(order);
     
-        // Actualiza los OrderItems existentes o crea nuevos si es necesario
+        console.log(order.orderItems);
         const existingItemIds = order.orderItems.map(item => item.id);
+    
+        // Crea una nueva instancia de OrderUpdate
+        const orderUpdate = new OrderUpdate();
+        orderUpdate.order = order;
+        orderUpdate.isAfterPreparation = order.status === OrderStatus.prepared;
+        await this.orderUpdateRepository.save(orderUpdate);
+    
         const updatedOrNewItems = updateOrderDto.orderItems.map(async itemDto => {
             if (itemDto.id && existingItemIds.includes(itemDto.id)) {
                 // Actualiza el OrderItem existente
-                return await this.orderItemService.update(itemDto.id, itemDto);
+                const updatedItem = await this.orderItemService.update(itemDto.id, itemDto);
+    
+                // Crea una nueva instancia de OrderItemUpdate para el OrderItem actualizado
+                const orderItemUpdate = new OrderItemUpdate();
+                orderItemUpdate.orderItem = updatedItem;
+                orderItemUpdate.orderUpdate = orderUpdate;
+                orderItemUpdate.isNewOrderItem = false;
+                await this.orderItemUpdateRepository.save(orderItemUpdate);
+    
+                return updatedItem;
             } else {
-                // Crea un nuevo OrderItem si no tiene ID o el ID no está en los existentes
-                return await this.orderItemService.create({ ...itemDto, orderId: order.id });
+                console.log("itemDto", itemDto);
+                const newItem = await this.orderItemService.create({ ...itemDto, orderId: order.id });
+    
+                // Crea una nueva instancia de OrderItemUpdate para el nuevo OrderItem
+                const orderItemUpdate = new OrderItemUpdate();
+                orderItemUpdate.orderItem = newItem;
+                orderItemUpdate.orderUpdate = orderUpdate;
+                orderItemUpdate.isNewOrderItem = true;
+                await this.orderItemUpdateRepository.save(orderItemUpdate);
+    
+                return newItem;
             }
         });
     
@@ -111,7 +186,7 @@ export class OrdersService {
             where: { id: orderId },
             relations: ['orderItems', 'table']
         });
-
+    
         // Llama al método emitOrderUpdated del AppGateway con el ID de la orden actualizada
         this.appGateway.emitOrderUpdated(updatedOrder.id);
     
@@ -124,47 +199,66 @@ export class OrdersService {
             where: {
                 status: In([OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared]),
             },
-            relations: ['orderItems', 'table','area', 'orderItems.product', 'orderItems.product.productVariants','orderItems.product.pizzaFlavors','orderItems.product.pizzaIngredients',
-            'orderItems.product.modifierTypes','orderItems.product.modifierTypes.modifiers','orderItems.product.productObservationTypes',
-            'orderItems.product.productObservationTypes.productObservations', 'orderItems.productVariant', 
-            'orderItems.selectedModifiers', 'orderItems.selectedModifiers.modifier', 'orderItems.selectedProductObservations', 
-            'orderItems.selectedProductObservations.productObservation', 'orderItems.selectedPizzaFlavors', 'orderItems.selectedPizzaFlavors.pizzaFlavor', 'orderItems.selectedPizzaIngredients', 'orderItems.selectedPizzaIngredients.pizzaIngredient'],
+            relations: ['area', 'table'],
         });
-        orders.forEach(order => console.log(order.orderItems));
         return orders;
     }
 
-    async updateOrderStatus(orderId: number, newStatus: OrderStatus): Promise<Order> {
+    async getOrderById(orderId: number): Promise<Order> {
+        
+        const order = await this.orderRepository.findOne({
+            where: {
+                id: orderId,
+                status: In([OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared]),
+            },
+            relations: ['orderItems', 'table', 'area', 'orderItems.product', 'orderItems.product.productVariants', 'orderItems.product.pizzaFlavors', 'orderItems.product.pizzaIngredients', 'orderItems.product.modifierTypes', 'orderItems.product.modifierTypes.modifiers', 'orderItems.product.productObservationTypes', 'orderItems.product.productObservationTypes.productObservations', 'orderItems.productVariant', 'orderItems.selectedModifiers', 'orderItems.selectedModifiers.modifier', 'orderItems.selectedProductObservations', 'orderItems.selectedProductObservations.productObservation', 'orderItems.selectedPizzaFlavors', 'orderItems.selectedPizzaFlavors.pizzaFlavor', 'orderItems.selectedPizzaIngredients', 'orderItems.selectedPizzaIngredients.pizzaIngredient'],
+        });
+        console.log(order);
+        return order;
+    }
+
+    async updateOrderPreparationStatus(newOrder: Order): Promise<Order> {
+        console.log("newOrder", newOrder);
         const order = await this.orderRepository.createQueryBuilder('order')
         .leftJoinAndSelect('order.orderItems', 'orderItem')
         .leftJoinAndSelect('orderItem.product', 'product')
         .leftJoinAndSelect('product.subcategory', 'subcategory')
         .leftJoinAndSelect('subcategory.category', 'category')
         .select([
-            'order.id', 'order.status', 
+            'order.id', 'order.status', 'order.barPreparationStatus', 'order.burgerPreparationStatus', 'order.pizzaPreparationStatus',
             'orderItem.id', 'orderItem.status', 
             'subcategory.id','subcategory.name', 
             'category.id','category.name' 
         ])
-        .where('order.id = :orderId', { orderId })
+        .where('order.id = :orderId', { orderId: newOrder.id })
         .getOne();
-    
+
     if (!order) {
         throw new Error('Order not found');
     }
-    
-        order.status = newStatus;
-    
-        if ([OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared].includes(newStatus)) {
+
+    if (newOrder.barPreparationStatus) {
+        
+        order.barPreparationStatus = newOrder.barPreparationStatus;
+    }
+    if (newOrder.burgerPreparationStatus) {
+        console.log("burgerPreparationStatus", newOrder.burgerPreparationStatus);
+        order.burgerPreparationStatus = newOrder.burgerPreparationStatus;
+    }
+    if (newOrder.pizzaPreparationStatus) {
+        order.pizzaPreparationStatus = newOrder.pizzaPreparationStatus;
+    }
+        
+        if ([OrderPreparationStatus.created, OrderPreparationStatus.in_preparation, OrderPreparationStatus.prepared].includes(newOrder.barPreparationStatus || newOrder.burgerPreparationStatus || newOrder.pizzaPreparationStatus)) {
             await Promise.all(order.orderItems.map(async (item) => {
-                switch (newStatus) {
-                    case OrderStatus.created:
+                switch (newOrder.barPreparationStatus || newOrder.burgerPreparationStatus || newOrder.pizzaPreparationStatus) {
+                    case OrderPreparationStatus.created:
                         item.status = OrderItemStatus.created;
                         break;
-                    case OrderStatus.in_preparation:
-                        item.status = OrderItemStatus.inPreparation;
+                    case OrderPreparationStatus.in_preparation:
+                        item.status = OrderItemStatus.in_preparation;
                         break;
-                    case OrderStatus.prepared:
+                    case OrderPreparationStatus.prepared:
                         item.status = OrderItemStatus.prepared;
                         break;
                     default:
@@ -176,8 +270,83 @@ export class OrdersService {
     
         await this.orderRepository.save(order);
     
-        this.appGateway.emitOrderStatusUpdated(order);
+        const completeOrder = await this.orderRepository.createQueryBuilder('order')
+            .leftJoinAndSelect('order.orderItems', 'orderItem')
+            .leftJoinAndSelect('orderItem.product', 'product')
+            .leftJoinAndSelect('product.subcategory', 'subcategory')
+            .leftJoinAndSelect('subcategory.category', 'category')
+            .select([
+                'order.id', 'order.status', 'order.barPreparationStatus', 'order.burgerPreparationStatus', 'order.pizzaPreparationStatus','order.orderType', 
+                'orderItem.id', 'orderItem.status', 
+                'product.id', 'product.name', 
+                'subcategory.id', 'subcategory.name', 
+                'category.id', 'category.name'
+            ])
+            .where('order.id = :orderId', { orderId: newOrder.id })
+            .getOne();
     
-        return order;
+        if (!completeOrder) {
+            throw new Error('Order not found after update');
+        }
+    
+        this.appGateway.emitOrderStatusUpdated(completeOrder);
+        console.log("completeOrder", completeOrder);
+        return completeOrder;
+    }
+
+    async updateOrderItemStatus(newOrderItem: OrderItem): Promise<OrderItem> {
+        const orderItem = await this.orderItemRepository.createQueryBuilder('orderItem')
+            .leftJoinAndSelect('orderItem.order', 'order')
+            .leftJoinAndSelect('order.orderItems', 'allOrderItems')
+            .leftJoinAndSelect('allOrderItems.product', 'product')
+            .leftJoinAndSelect('product.subcategory', 'subcategory')
+            .leftJoinAndSelect('subcategory.category', 'category')
+            .select([
+                'orderItem.id', 'orderItem.status',
+                'order.id', 'order.status', 'order.orderType',
+                'allOrderItems.id', 'allOrderItems.status',
+                'product.id', 'product.name',
+                'subcategory.id', 'subcategory.name',
+                'category.id', 'category.name'
+            ])
+            .where('orderItem.id = :orderItemId', { orderItemId: newOrderItem.id })
+            .getOne();
+    
+        if (!orderItem) {
+            throw new Error('OrderItem not found');
+        }
+    
+        if (!orderItem.order || orderItem.order.id !== newOrderItem.order.id) {
+            throw new Error('OrderItem does not belong to the specified order');
+        }
+    
+        // Actualiza el estado del OrderItem
+        orderItem.status = newOrderItem.status;
+    
+        await this.orderItemRepository.save(orderItem);
+    
+        // Recupera el objeto Order completo con todas las relaciones necesarias para emitOrderItemStatusUpdated
+        const completeOrder = await this.orderRepository.createQueryBuilder('order')
+            .leftJoinAndSelect('order.orderItems', 'orderItem')
+            .leftJoinAndSelect('orderItem.product', 'product')
+            .leftJoinAndSelect('product.subcategory', 'subcategory')
+            .leftJoinAndSelect('subcategory.category', 'category')
+            .select([
+                'order.id', 'order.status', 'order.orderType',
+                'orderItem.id', 'orderItem.status',
+                'product.id', 'product.name',
+                'subcategory.id', 'subcategory.name',
+                'category.id', 'category.name'
+            ])
+            .where('order.id = :orderId', { orderId: orderItem.order.id })
+            .getOne();
+    
+        if (!completeOrder) {
+            throw new Error('Order not found after update');
+        }
+    
+        // Llama a emitOrderItemStatusUpdated con el objeto Order completo y el ID del OrderItem actualizado
+        await this.appGateway.emitOrderItemStatusUpdated(completeOrder, orderItem.id);
+        return orderItem;
     }
 }

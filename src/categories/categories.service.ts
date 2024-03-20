@@ -25,7 +25,6 @@ export class CategoriesService {
                     'subcategories.products.pizzaIngredients',
                 ],
             });
-            console.log(categories);
             return categories;
         } catch (error) {
             throw new HttpException('Error retrieving categories', HttpStatus.INTERNAL_SERVER_ERROR);

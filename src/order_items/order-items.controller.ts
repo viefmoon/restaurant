@@ -11,8 +11,4 @@ export class OrderItemsController {
         return this.orderItemsService.create(createOrderItemDto);
     }
 
-    @Put(':id/status')
-    updateOrderItemStatus(@Param('id', ParseIntPipe) id: number, @Body() status: OrderItemStatus) {
-        return this.orderItemsService.updateOrderItemStatus(id, status);
-    }
 }

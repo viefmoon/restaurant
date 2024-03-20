@@ -24,10 +24,8 @@ export class AppGateway {
   }
 
   handleConnection(@ConnectedSocket() client: Socket) {
-    console.log(`Nueva conexión: ${client.id}`);
     const screenType = client.handshake.query.screenType;
   
-    console.log(`Tipo de pantalla conectada: ${screenType}`);
     switch(screenType) {
       case 'pizzaScreen':
         client.join('pizzaScreen');
@@ -49,6 +47,7 @@ export class AppGateway {
   }
 
   emitOrderStatusUpdated(order: Order): void {
+
     const itemsForPizzaScreen = [];
     const itemsForBurgerScreen = [];
     const itemsForBarScreen = [];
@@ -65,7 +64,7 @@ export class AppGateway {
         if (!category) return; // Si no hay categoría, saltar este ítem
 
         // Separar ítems de bebidas a la pantalla de bar
-        if (category === 'Bebidas') {
+        if (category === 'Bebida') {
             itemsForBarScreen.push(item);
         } else {
             // Si la orden contiene 'Pizzas' o 'Entradas', los ítems de comida van a la pantalla de pizza
@@ -79,32 +78,43 @@ export class AppGateway {
     });
 
     // Definir el objeto de actualización con solo los campos necesarios
-    const orderUpdateInfo = {
-        orderId: order.id,
-        status: order.status,
-        orderItems: order.orderItems,
-        itemsForPizzaScreen,
-        itemsForBurgerScreen,
-        itemsForBarScreen
-    };
-
-    // Emitir el evento a las pantallas correspondientes
+    // Emitir el evento a las pantallas correspondientes con los items específicos para cada pantalla
     if (itemsForPizzaScreen.length > 0) {
-        this.server.to('pizzaScreen').emit('orderStatusUpdated', orderUpdateInfo);
+        const orderUpdateInfoForPizzaScreen = {
+            orderId: order.id,
+            pizzaPreparationStatus: order.pizzaPreparationStatus,
+            barPreparationStatus: order.barPreparationStatus,
+            burgerPreparationStatus: order.burgerPreparationStatus,
+            orderType: order.orderType,
+            orderItems: itemsForPizzaScreen
+        };
+        this.server.to('pizzaScreen').emit('orderStatusUpdated', orderUpdateInfoForPizzaScreen);
     }
     if (itemsForBurgerScreen.length > 0) {
-        this.server.to('burgerScreen').emit('orderStatusUpdated', orderUpdateInfo);
+        const orderUpdateInfoForBurgerScreen = {
+            orderId: order.id,
+            pizzaPreparationStatus: order.pizzaPreparationStatus,
+            barPreparationStatus: order.barPreparationStatus,
+            burgerPreparationStatus: order.burgerPreparationStatus,
+            orderType: order.orderType,
+            orderItems: itemsForBurgerScreen
+        };
+        this.server.to('burgerScreen').emit('orderStatusUpdated', orderUpdateInfoForBurgerScreen);
     }
     if (itemsForBarScreen.length > 0) {
-        this.server.to('barScreen').emit('orderStatusUpdated', orderUpdateInfo);
+        const orderUpdateInfoForBarScreen = {
+            orderId: order.id,
+            pizzaPreparationStatus: order.pizzaPreparationStatus,
+            barPreparationStatus: order.barPreparationStatus,
+            burgerPreparationStatus: order.burgerPreparationStatus,
+            orderType: order.orderType,
+            orderItems: itemsForBarScreen
+        };
+        this.server.to('barScreen').emit('orderStatusUpdated', orderUpdateInfoForBarScreen);
     }
 }
-  
-async emitOrderItemStatusUpdated(order: Order, orderItemId: number): Promise<void> {
-    // La lógica dentro de la función ahora opera en base a la orden pasada como argumento
-    // y utiliza orderItemId para referenciar el item específico cuando sea necesario
 
-    // Verificar si la orden contiene ítems de 'Pizzas' o 'Entradas'
+async emitOrderItemStatusUpdated(order: Order, orderItemId: number): Promise<void> {
     const containsPizzaOrEntradas = order.orderItems.some(item => {
         const subcategory = item.product?.subcategory?.name;
         return subcategory === 'Pizzas' || subcategory === 'Entradas';
@@ -115,7 +125,7 @@ async emitOrderItemStatusUpdated(order: Order, orderItemId: number): Promise<voi
     const specificOrderItem = order.orderItems.find(item => item.id === orderItemId);
     const category = specificOrderItem?.product?.subcategory?.category?.name;
 
-    if (category === 'Bebidas') {
+    if (category === 'Bebida') {
         screenType = 'barScreen';
     } else if (containsPizzaOrEntradas) {
         screenType = 'pizzaScreen';
@@ -143,6 +153,9 @@ async emitPendingOrderItemsToScreens(): Promise<void> {
       .leftJoinAndSelect('order.area', 'area')
       .leftJoinAndSelect('order.table', 'table')
       .leftJoinAndSelect('order.orderItems', 'orderItem')
+      .leftJoinAndSelect('order.orderUpdates', 'orderUpdate')
+      .leftJoinAndSelect('orderUpdate.orderItemUpdates', 'orderItemUpdate')
+      .leftJoinAndSelect('orderItemUpdate.orderItem', 'orderItemUpdated')
       .leftJoinAndSelect('orderItem.product', 'product')
       .leftJoinAndSelect('product.subcategory', 'subcategory')
       .leftJoinAndSelect('subcategory.category', 'category')
@@ -157,6 +170,9 @@ async emitPendingOrderItemsToScreens(): Promise<void> {
       .leftJoinAndSelect('selectedPizzaIngredients.pizzaIngredient', 'pizzaIngredient')
       .select([
           'order.id','order.orderType', 'order.status', 'order.creationDate','order.scheduledDeliveryTime','order.comments','order.phoneNumber','order.deliveryAddress','order.customerName',
+          'orderUpdate.id','orderUpdate.updateAt','orderUpdate.isAfterPreparation','orderUpdate.isAfterPreparation','orderUpdate.isAfterPreparation',
+          'orderItemUpdate.id','orderItemUpdate.isNewOrderItem',
+          'orderItemUpdated.id',
           'area.id','area.name',
           'table.id','table.number',
           'orderItem.id', 'orderItem.status','orderItem.comments',
@@ -205,16 +221,13 @@ async emitPendingOrderItemsToScreens(): Promise<void> {
       }
       // Emitir eventos a las pantallas correspondientes
       if (itemsForPizzaScreen.length > 0) {
-          this.server.to('pizzaScreen').emit('pendingOrderItems', { order, items: itemsForPizzaScreen });
+          this.server.to('pizzaScreen').emit('pendingOrderItems', { order, orderItems: itemsForPizzaScreen });
       }
       if (!containsPizzaOrEntradas && itemsForBurgerScreen.length > 0) {
-          this.server.to('burgerScreen').emit('pendingOrderItems', { order, items: itemsForBurgerScreen });
+          this.server.to('burgerScreen').emit('pendingOrderItems', { order, orderItems: itemsForBurgerScreen });
       }
       if (itemsForBarScreen.length > 0) {
-          console.log('Emitiendo ítems de orden pendientes a la pantalla de bar...');
-          console.log('order', order);
-          console.log("itemsForBarScreen", itemsForBarScreen);
-          this.server.to('barScreen').emit('pendingOrderItems', { order, items: itemsForBarScreen });
+          this.server.to('barScreen').emit('pendingOrderItems', { order, orderItems: itemsForBarScreen });
       }
   });
 }

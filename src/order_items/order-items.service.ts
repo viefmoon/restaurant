@@ -216,39 +216,4 @@ export class OrderItemsService {
     });
 }
 
-    async updateOrderItemStatus(orderItemId: number, newStatus: OrderItemStatus): Promise<OrderItem> {
-        // Primero, encontrar el orderItem y su orden correspondiente
-        const orderItem = await this.orderItemRepository.findOne({
-            where: { id: orderItemId },
-            relations: ['order']
-        });
-    
-        if (!orderItem) {
-            throw new Error('OrderItem not found');
-        }
-    
-        // Actualizar el estado del orderItem
-        orderItem.status = newStatus;
-        await this.orderItemRepository.save(orderItem);
-    
-        // Luego, obtener todos los orderItems relacionados con la orden, incluyendo las relaciones necesarias
-        const orderWithItems = await this.orderRepository.findOne({
-            where: { id: orderItem.order.id },
-            relations: [
-                'orderItems',
-                'orderItems.product',
-                'orderItems.product.subcategory',
-                'orderItems.product.subcategory.category'
-            ]
-        });
-    
-        if (!orderWithItems) {
-            throw new Error('Order not found');
-        }
-    
-        // Ahora pasas la orden completa y el ID del orderItem actualizado
-        this.appGateway.emitOrderItemStatusUpdated(orderWithItems, orderItemId);
-    
-        return orderItem;
-    }
 }

@@ -8,7 +8,7 @@ import { OrderItemUpdate } from '../order_item_updates/order-item-update.entity'
 import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
 
-export enum OrderItemStatus { created = "created", inPreparation = "in_preparation", prepared = "prepared", canceled = "canceled" }
+export enum OrderItemStatus { created = "created", in_preparation = "in_preparation", prepared = "prepared", canceled = "canceled" }
 
 @Entity({ name: 'order_items' })
 export class OrderItem {

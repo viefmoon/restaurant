@@ -17,6 +17,13 @@ export enum OrderStatus {
     canceled = "canceled"
 }
 
+export enum OrderPreparationStatus {
+    created = "created",
+    in_preparation = "in_preparation",
+    prepared = "prepared",
+    not_required = "not_required"
+}
+
 @Entity({ name: 'orders' })
 export class Order {
     @PrimaryGeneratedColumn()
@@ -34,6 +41,7 @@ export class Order {
         default: OrderStatus.created
     })
     status: OrderStatus;
+    
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     amountPaid: number;
@@ -58,6 +66,24 @@ export class Order {
 
     @Column({ nullable: true })
     customerName: string;
+
+    @Column({
+        type: "enum",
+        enum: OrderPreparationStatus,
+    })
+    barPreparationStatus: OrderPreparationStatus;
+
+    @Column({
+        type: "enum",
+        enum: OrderPreparationStatus,
+    })
+    burgerPreparationStatus: OrderPreparationStatus;
+
+    @Column({
+        type: "enum",
+        enum: OrderPreparationStatus,
+    })
+    pizzaPreparationStatus: OrderPreparationStatus;
 
     @ManyToOne(() => Area, area => area.orders, { nullable: true })
     area: Area;

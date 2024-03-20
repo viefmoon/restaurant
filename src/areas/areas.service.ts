@@ -23,8 +23,6 @@ export class AreasService {
         if (!areaWithTables) {
             throw new Error('Área no encontrada');
         }
-
-        console.log(areaWithTables.tables);
     
         return areaWithTables.tables; 
     }

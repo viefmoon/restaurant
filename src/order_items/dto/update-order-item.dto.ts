@@ -4,7 +4,8 @@ import {
     IsOptional, 
     ValidateNested, 
     IsArray,
-    IsInt, 
+    IsInt,
+    IsEnum, 
 } from 'class-validator';
 import { Modifier } from 'src/modifiers/modifier.entity';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
@@ -13,6 +14,7 @@ import { ProductObservation } from 'src/product_observations/product-observation
 import { ProductVariant } from 'src/product_variants/product-variant.entity';
 import { Product } from 'src/products/product.entity';
 import { PizzaHalf } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
+import { OrderItemStatus } from '../order-item.entity';
 
 
 export class SelectedModifierDto {
@@ -42,7 +44,12 @@ export class SelectedPizzaIngredientDto {
 export class UpdateOrderItemDto {
     @IsNotEmpty()
     @IsInt()
-    id: number;
+    @IsOptional()
+    id?: number;
+    
+    @IsOptional()
+    @IsEnum(OrderItemStatus)
+    status?: OrderItemStatus;
 
     @IsOptional()
     comments?: string;

@@ -1,6 +1,6 @@
 import { IsEnum, IsOptional, IsString, ValidateNested, IsArray, IsInt, IsDate } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderType } from '../order.entity';
+import { OrderStatus, OrderType } from '../order.entity';
 import { CreateOrderItemDto } from 'src/order_items/dto/create-order-item.dto';
 import { Area } from 'src/areas/area.entity';
 import { Table } from 'src/tables/table.entity';
@@ -12,6 +12,10 @@ export class CreateOrderDto {
     @IsOptional()
     @IsString()
     comments?: string;
+
+    @IsOptional()
+    @IsEnum(OrderStatus)  
+    status: OrderStatus
 
     @IsOptional()
     @IsString()

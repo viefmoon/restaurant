@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn,  ManyToOne, OneToMany, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn,  ManyToOne, OneToMany, CreateDateColumn, Column } from 'typeorm';
 import { Order } from '../orders/order.entity';
 import { OrderItemUpdate } from '../order_item_updates/order-item-update.entity';
 
@@ -15,4 +15,7 @@ export class OrderUpdate {
 
     @OneToMany(() => OrderItemUpdate, orderItemUpdate => orderItemUpdate.orderUpdate)
     orderItemUpdates: OrderItemUpdate[];
+
+    @Column({ default: false })
+    isAfterPreparation: boolean;
 }

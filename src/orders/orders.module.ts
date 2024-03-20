@@ -18,9 +18,11 @@ import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { AppGateway } from 'src/app.gateway';
+import { OrderUpdate } from 'src/order_updates/order-update.entity';
+import { OrderItemUpdate } from 'src/order_item_updates/order-item-update.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, Table, Area, OrderItem, Product, ProductVariant, ProductObservation, SelectedProductObservation, Modifier, SelectedModifier, PizzaFlavor, SelectedPizzaFlavor, PizzaIngredient, SelectedPizzaIngredient, ])], 
+  imports: [TypeOrmModule.forFeature([Order, Table, Area, OrderItem, Product, ProductVariant, ProductObservation, SelectedProductObservation, Modifier, SelectedModifier, PizzaFlavor, SelectedPizzaFlavor, PizzaIngredient, SelectedPizzaIngredient, OrderUpdate, OrderItemUpdate])], 
   providers: [OrdersService, OrderItemsService, AppGateway], 
   controllers: [OrdersController], 
   exports: [TypeOrmModule]
