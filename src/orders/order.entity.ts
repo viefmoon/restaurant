@@ -67,6 +67,9 @@ export class Order {
     @Column({ nullable: true })
     customerName: string;
 
+    @Column({ type: 'varchar', nullable: true })
+    createdBy: string;
+
     @Column({
         type: "enum",
         enum: OrderPreparationStatus,

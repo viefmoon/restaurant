@@ -20,6 +20,9 @@ export class OrderUpdate {
   @Column({ default: 1 })
   updateNumber: number;
 
+  @Column({ type: 'varchar', nullable: true })
+  updatedBy: string;
+
   @ManyToOne(() => Order, (order) => order.orderUpdates)
   order: Order;
 

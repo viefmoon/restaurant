@@ -19,8 +19,7 @@ export enum OrderItemStatus {
   created = 'created',
   in_preparation = 'in_preparation',
   prepared = 'prepared',
-  canceled = 'canceled',
-}
+} 
 
 @Entity({ name: 'order_items' })
 export class OrderItem {

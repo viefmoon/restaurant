@@ -35,6 +35,11 @@ export class CreateOrderDto {
     @IsOptional()
     @IsString()
     customerName?: string;
+
+    @IsOptional()
+    @IsString()
+    createdBy?: string;
+
     
     @IsOptional()
     totalCost?: number;

@@ -37,7 +37,7 @@ export class OrdersController {
     return this.ordersService.updateOrder(id, updateOrderDto);
     }
 
-    @Patch(':id/status')
+    @Patch('/:id/status')
     async updateOrderPreparationStatus(@Body() order: Order) {
     return this.ordersService.updateOrderPreparationStatus(order);
     }
@@ -46,4 +46,15 @@ export class OrdersController {
     async updateOrderItemsStatus(@Body() orderItem: OrderItem) {
     return this.ordersService.updateOrderItemStatus(orderItem);
     }
+
+    @Patch('/:id/pay')
+    async registerPayment(@Param('id', ParseIntPipe) id: number, @Body() paymentDto: any) {
+        return this.ordersService.registerPayment(id, paymentDto.amount);
+    }
+
+    @Patch('/:id/complete')
+    async completeOrder(@Param('id', ParseIntPipe) id: number) {
+        return this.ordersService.completeOrder(id);
+    }
+    
 }

@@ -1,26 +1,15 @@
 import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDate } from 'class-validator';
 
 export class UpdateOrderDto {
-    @IsNotEmpty()
-    @IsString()
-    orderType?: string;
-
-    @IsNotEmpty()
-    @IsString()
-    status?: string;
-
+    @IsOptional()
     @IsNumber()
-    amountPaid?: number;
-
-    @IsNumber()
-    total?: number;
+    updateNumber?: number;
 
     @IsOptional()
     @IsString()
-    comments?: string;
+    updatedBy?: string;
 
-    // Incluye tableId si la entidad Table está disponible
-    // @IsOptional()
-    // @IsNumber()
-    // tableId?: number;
+    @IsOptional()
+    @IsDate()
+    updateAt?: Date;
 }

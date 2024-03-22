@@ -62,7 +62,8 @@ export class AppGateway {
         itemsForBarScreen.push(item);
       } else if (containsPizzaOrEntradas) {
         itemsForPizzaScreen.push(item);
-      } else if (
+      }
+      if (
         category === 'Comida' &&
         (subcategory === 'Hamburguesas' || subcategory === 'Ensaladas')
       ) {
@@ -116,36 +117,43 @@ export class AppGateway {
       const subcategory = item.product?.subcategory?.name;
       return subcategory === 'Pizzas' || subcategory === 'Entradas';
     });
-
+  
     const specificOrderItem = order.orderItems.find(
       (item) => item.id === orderItemId,
     );
     const category = specificOrderItem?.product?.subcategory?.category?.name;
     const subcategory = specificOrderItem?.product?.subcategory?.name;
-
-    let screenType;
+  
+    // Ahora se permite que un ítem de orden se emita a múltiples pantallas.
     if (category === 'Bebida') {
-      screenType = 'barScreen';
-    } else if (containsPizzaOrEntradas) {
-      screenType = 'pizzaScreen';
-    } else if (
-      category === 'Comida' &&
-      (subcategory === 'Hamburguesas' || subcategory === 'Ensaladas')
-    ) {
-      screenType = 'burgerScreen';
-    }
-
-    if (screenType) {
-      this.server.to(screenType).emit('orderItemStatusUpdated', {
+      this.server.to('barScreen').emit('orderItemStatusUpdated', {
         messageType: 'orderItemStatusUpdated',
         orderId: order.id,
         orderItemId: orderItemId,
         status: specificOrderItem?.status,
       });
-    } else {
-      console.error(
-        'No se pudo determinar la pantalla para emitir el evento de OrderItem',
-      );
+    }
+    if (containsPizzaOrEntradas) {
+      // Si la orden contiene pizzas o entradas, se emite a la pantalla de pizza.
+      this.server.to('pizzaScreen').emit('orderItemStatusUpdated', {
+        messageType: 'orderItemStatusUpdated',
+        orderId: order.id,
+        orderItemId: orderItemId,
+        status: specificOrderItem?.status,
+      });
+    }
+    if (
+      category === 'Comida' &&
+      (subcategory === 'Hamburguesas' || subcategory === 'Ensaladas')
+    ) {
+      // Si el ítem es de comida y específicamente hamburguesa o ensalada, se emite a la pantalla de burger.
+      // Nota: Esto permite la emisión a la pantalla de burger incluso si ya se emitió a la pantalla de pizza.
+      this.server.to('burgerScreen').emit('orderItemStatusUpdated', {
+        messageType: 'orderItemStatusUpdated',
+        orderId: order.id,
+        orderItemId: orderItemId,
+        status: specificOrderItem?.status,
+      });
     }
   }
 

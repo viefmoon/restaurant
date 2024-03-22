@@ -77,9 +77,9 @@ export const seedProducts = async (dataSource: DataSource) => {
         {
           name: 'Té',
           variants: [
-            { name: 'Manzanilla', price: 30 },
-            { name: 'Limon', price: 30 },
-            { name: 'Verde', price: 30 },
+            { name: 'Té Manzanilla', price: 30 },
+            { name: 'Té Limon', price: 30 },
+            { name: 'Té Verde', price: 30 },
           ],
         },
       ],
@@ -92,7 +92,7 @@ export const seedProducts = async (dataSource: DataSource) => {
         { name: 'Chocolate', price: 50 },
         { name: 'Latte Capuchino', price: 50 },
         { name: 'Latte Vainilla', price: 50 },
-        { name: 'Mocachino', price: 52 },
+        { name: 'Mocachino', price: 50 },
       ],
     },
     {
@@ -122,24 +122,24 @@ export const seedProducts = async (dataSource: DataSource) => {
         {
           name: 'Frappe',
           variants: [
-            { name: 'Capuchino', price: 70 },
-            { name: 'Coco', price: 70 },
-            { name: 'Caramelo', price: 70 },
-            { name: 'Cajeta', price: 70 },
-            { name: 'Mocachino', price: 70 },
-            { name: 'Galleta', price: 70 },
-            { name: 'Bombón', price: 70 },
-            { name: 'Rompopo', price: 85 },
-            { name: 'Mazapán', price: 85 },
-            { name: 'Magnum', price: 85 },
+            { name: 'Frappe Capuchino', price: 70 },
+            { name: 'Frappe Coco', price: 70 },
+            { name: 'Frappe Caramelo', price: 70 },
+            { name: 'Frappe Cajeta', price: 70 },
+            { name: 'Frappe Mocachino', price: 70 },
+            { name: 'Frappe Galleta', price: 70 },
+            { name: 'Frappe Bombón', price: 70 },
+            { name: 'Frappe Rompopo', price: 85 },
+            { name: 'Frappe Mazapán', price: 85 },
+            { name: 'Frappe Magnum', price: 85 },
           ],
         },
         {
           name: 'Malteada',
           variants: [
-            { name: 'Galleta', price: 80 },
-            { name: 'Vainilla', price: 80 },
-            { name: 'Capuchino', price: 80 },
+            { name: 'Malteada Galleta', price: 80 },
+            { name: 'Malteada Vainilla', price: 80 },
+            { name: 'Malteada Capuchino', price: 80 },
           ],
         },
       ],
@@ -163,13 +163,13 @@ export const seedProducts = async (dataSource: DataSource) => {
         {
           name: 'Hamburguesa',
           variants: [
-            { name: 'Tradicional', price: 85 },
-            { name: 'Especial', price: 95 },
-            { name: 'Hawaiana', price: 95 },
-            { name: 'Pollo', price: 100 },
-            { name: 'BBQ', price: 100 },
-            { name: 'Leñazo', price: 110 },
-            { name: 'Cubana', price: 100 },
+            { name: 'H. Tradicional', price: 85 },
+            { name: 'H. Especial', price: 95 },
+            { name: 'H. Hawaiana', price: 95 },
+            { name: 'H. Pollo', price: 100 },
+            { name: 'H. BBQ', price: 100 },
+            { name: 'H. Leñazo', price: 110 },
+            { name: 'H. Cubana', price: 100 },
           ],
           modifiers: [
             {
@@ -191,7 +191,7 @@ export const seedProducts = async (dataSource: DataSource) => {
           ],
           observations: [
             {
-              typeName: 'Sin',
+              typeName: 'Sin ingrediente',
               acceptsMultiple: true,
               options: [
                 'Sin cebolla',
@@ -226,9 +226,9 @@ export const seedProducts = async (dataSource: DataSource) => {
         {
           name: 'Papas',
           variants: [
-            { name: 'Francesa', price: 90 },
-            { name: 'Gajo', price: 100 },
-            { name: 'Mixtas', price: 100 },
+            { name: 'P. Francesa', price: 90 },
+            { name: 'P. Gajo', price: 100 },
+            { name: 'P. Mixtas', price: 100 },
             { name: '1/2 Francesa', price: 55 },
             { name: '1/2 Gajo', price: 60 },
           ],
@@ -249,15 +249,15 @@ export const seedProducts = async (dataSource: DataSource) => {
         {
           name: 'Ensalada de pollo',
           variants: [
-            { name: 'Chica', price: 90 },
-            { name: 'Grande', price: 120 },
+            { name: 'Ens. chica pollo', price: 90 },
+            { name: 'Ens. grande pollo', price: 120 },
           ],
         },
         {
           name: 'Ensalada de jamon',
           variants: [
-            { name: 'Chica', price: 80 },
-            { name: 'Grande', price: 100 },
+            { name: 'Ens. chica jamon', price: 80 },
+            { name: 'Ens. grande jamon', price: 100 },
           ],
         },
       ],
