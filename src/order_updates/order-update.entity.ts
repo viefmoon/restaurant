@@ -17,6 +17,9 @@ export class OrderUpdate {
   @CreateDateColumn()
   updateAt: Date;
 
+  @Column({ default: 1 })
+  updateNumber: number;
+
   @ManyToOne(() => Order, (order) => order.orderUpdates)
   order: Order;
 

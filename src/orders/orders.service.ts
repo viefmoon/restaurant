@@ -111,7 +111,7 @@ export class OrdersService {
     for (const itemDto of orderItemsWithDetails) {
       await this.orderItemService.create({
         ...itemDto,
-        orderId: savedOrder.id,
+        order: savedOrder,
       });
     }
 
@@ -127,65 +127,98 @@ export class OrdersService {
     orderId: number,
     updateOrderDto: UpdateOrderDto,
   ): Promise<Order> {
-    console.log(updateOrderDto);
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['orderItems', 'table'],
+      relations: [
+        'orderItems',
+        'orderItems.product',
+        'orderItems.product.subcategory',
+        'orderItems.product.subcategory.category',
+      ],
     });
 
     if (!order) {
       throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
     }
 
-    // Actualiza los campos de la orden
-    order.orderType = updateOrderDto.orderType;
-    order.scheduledDeliveryTime = updateOrderDto.scheduledDeliveryTime;
-    order.totalCost = updateOrderDto.totalCost;
-    order.comments = updateOrderDto.comments;
-    order.phoneNumber = updateOrderDto.phoneNumber;
-    order.deliveryAddress = updateOrderDto.deliveryAddress;
-    order.customerName = updateOrderDto.customerName;
-    order.area = updateOrderDto.area;
-    order.table = updateOrderDto.table;
+    const lastUpdate = await this.orderUpdateRepository.findOne({
+      where: { order: { id: orderId } },
+      order: { updateNumber: 'DESC' },
+    });
 
-    await this.orderRepository.save(order);
+    const orderUpdate = new OrderUpdate();
+    orderUpdate.order = order;
+    orderUpdate.updateNumber = lastUpdate ? lastUpdate.updateNumber + 1 : 1;
+    await this.orderUpdateRepository.save(orderUpdate);
+
+    //await this.orderRepository.save(order);
 
     const existingItemIds = order.orderItems.map((item) => item.id);
 
-    // Crea una nueva instancia de OrderUpdate
-    const orderUpdate = new OrderUpdate();
-    orderUpdate.order = order;
-    await this.orderUpdateRepository.save(orderUpdate);
-
+    // Variables to determine if screen states need to be updated
+    let updateBarScreen = false;
+    let updatePizzaScreen = false;
+    let updateBurgerScreen = false;
+    let hasNewItems = false;
     const updatedOrNewItems = updateOrderDto.orderItems.map(async (itemDto) => {
       if (itemDto.id && existingItemIds.includes(itemDto.id)) {
-        // Actualiza el OrderItem existente
-        const updatedItem = await this.orderItemService.update(
-          itemDto.id,
-          itemDto,
-        );
+        const existingItem = await this.findOrderItemById(itemDto.id);
+        if (this.itemDtoHasSignificantChanges(existingItem, itemDto)) {
+          const updatedItem = await this.orderItemService.update(
+            itemDto.id,
+            itemDto,
+          );
 
-        // Crea una nueva instancia de OrderItemUpdate para el OrderItem actualizado
-        const orderItemUpdate = new OrderItemUpdate();
-        orderItemUpdate.orderItem = updatedItem;
-        orderItemUpdate.orderUpdate = orderUpdate;
-        orderItemUpdate.isNewOrderItem = false;
-        await this.orderItemUpdateRepository.save(orderItemUpdate);
+          const orderItemUpdate = new OrderItemUpdate();
+          orderItemUpdate.orderItem = updatedItem;
+          orderItemUpdate.orderUpdate = orderUpdate;
+          orderItemUpdate.isNewOrderItem = false;
+          await this.orderItemUpdateRepository.save(orderItemUpdate);
 
-        return updatedItem;
+          if (updatedItem.product.subcategory.category.name === 'Bebida') {
+            updateBarScreen = true;
+          } else if (
+            updatedItem.product.subcategory.category.name === 'Comida'
+          ) {
+            if (
+              updatedItem.product.subcategory.name === 'Pizzas' ||
+              updatedItem.product.subcategory.name === 'Entradas'
+            ) {
+              updatePizzaScreen = true;
+            } else {
+              updateBurgerScreen = true;
+            }
+          }
+
+          return updatedItem;
+        }
       } else {
-        console.log('itemDto', itemDto);
+        hasNewItems = true;
         const newItem = await this.orderItemService.create({
           ...itemDto,
-          orderId: order.id,
+          order: order,
         });
 
-        // Crea una nueva instancia de OrderItemUpdate para el nuevo OrderItem
         const orderItemUpdate = new OrderItemUpdate();
         orderItemUpdate.orderItem = newItem;
         orderItemUpdate.orderUpdate = orderUpdate;
         orderItemUpdate.isNewOrderItem = true;
+
         await this.orderItemUpdateRepository.save(orderItemUpdate);
+
+        // Check if the new item requires updating the screen state
+        if (newItem.product.subcategory.category.name === 'Bebida') {
+          updateBarScreen = true;
+        } else if (newItem.product.subcategory.category.name === 'Comida') {
+          if (
+            newItem.product.subcategory.name === 'Pizzas' ||
+            newItem.product.subcategory.name === 'Entradas'
+          ) {
+            updatePizzaScreen = true;
+          } else {
+            updateBurgerScreen = true;
+          }
+        }
 
         return newItem;
       }
@@ -193,7 +226,6 @@ export class OrdersService {
 
     await Promise.all(updatedOrNewItems);
 
-    // Opcional: Eliminar los OrderItems que no están en updateOrderDto
     const newItemIds = updateOrderDto.orderItems
       .filter((item) => item.id)
       .map((item) => item.id);
@@ -204,15 +236,124 @@ export class OrdersService {
       await this.orderItemRepository.delete(itemsToDelete);
     }
 
-    // Recupera la orden actualizada con sus OrderItems actualizados
     const updatedOrder = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: ['orderItems', 'table'],
+      relations: [
+        'orderItems',
+        'orderItems.product',
+        'orderItems.product.subcategory',
+        'orderItems.product.subcategory.category',
+      ],
     });
+
+    // Actualiza los campos de la orden
+    updatedOrder.orderType = updateOrderDto.orderType;
+    updatedOrder.scheduledDeliveryTime = updateOrderDto.scheduledDeliveryTime;
+    updatedOrder.totalCost = updateOrderDto.totalCost;
+    updatedOrder.comments = updateOrderDto.comments;
+    updatedOrder.phoneNumber = updateOrderDto.phoneNumber;
+    updatedOrder.deliveryAddress = updateOrderDto.deliveryAddress;
+    updatedOrder.customerName = updateOrderDto.customerName;
+    order.area = updateOrderDto.area;
+    updatedOrder.table = updateOrderDto.table;
+
+    if (hasNewItems) {
+      updatedOrder.status = OrderStatus.in_preparation;
+    }
+
+    // Update screen states if necessary
+    if (updateBarScreen) {
+      updatedOrder.barPreparationStatus = OrderPreparationStatus.in_preparation;
+    }
+    if (
+      updatePizzaScreen ||
+      (updateBurgerScreen && !this.containsPizzaOrEntradas(order.orderItems))
+    ) {
+      updatedOrder.pizzaPreparationStatus =
+        OrderPreparationStatus.in_preparation;
+    } else if (updateBurgerScreen) {
+      updatedOrder.burgerPreparationStatus =
+        OrderPreparationStatus.in_preparation;
+    }
+    await this.orderRepository.save(updatedOrder);
 
     this.appGateway.emitOrderUpdated(updatedOrder.id);
 
     return updatedOrder;
+  }
+
+  // Helper method to determine if the order contains pizza or entrada items
+  private containsPizzaOrEntradas(orderItems: OrderItem[]): boolean {
+    return orderItems.some(
+      (item) =>
+        item.product.subcategory.name === 'Pizzas' ||
+        item.product.subcategory.name === 'Entradas',
+    );
+  }
+
+  async findOrderItemById(id: number): Promise<OrderItem> {
+    return await this.orderItemRepository.findOne({
+      where: { id: id },
+      relations: [
+        'productVariant',
+        'selectedModifiers',
+        'selectedProductObservations',
+        'selectedPizzaFlavors',
+        'selectedPizzaIngredients',
+        'product',
+      ],
+    });
+  }
+
+  private itemDtoHasSignificantChanges(
+    existingItem: OrderItem,
+    itemDto: any,
+  ): boolean {
+    // Compara campos simples primero
+    if (
+      existingItem.comments !== itemDto.comments ||
+      existingItem.product.id !== itemDto.product.id ||
+      (existingItem.productVariant &&
+        itemDto.productVariant &&
+        existingItem.productVariant.id !== itemDto.productVariant.id)
+    ) {
+      return true;
+    }
+
+    // Compara las relaciones que pueden tener arrays de IDs para simplificar
+    // Nota: Esto asume que itemDto y existingItem tienen las propiedades en el mismo formato
+    // Puede necesitar ajustes si, por ejemplo, itemDto tiene arrays de objetos en lugar de IDs
+    const compareArrays = (arr1: any[], arr2: any[]): boolean => {
+      if (arr1.length !== arr2.length) return true;
+      const set = new Set([...arr1, ...arr2]);
+      return set.size !== arr1.length; // Si el tamaño es diferente, hay elementos únicos
+    };
+
+    // Ejemplo de comparación de relaciones (modificadores seleccionados, observaciones, etc.)
+    if (
+      compareArrays(
+        existingItem.selectedModifiers.map((m) => m.id),
+        itemDto.selectedModifiers,
+      ) ||
+      compareArrays(
+        existingItem.selectedProductObservations.map((o) => o.id),
+        itemDto.selectedProductObservations,
+      ) ||
+      compareArrays(
+        existingItem.selectedPizzaFlavors.map((f) => f.id),
+        itemDto.selectedPizzaFlavors,
+      ) ||
+      compareArrays(
+        existingItem.selectedPizzaIngredients.map((i) => i.id),
+        itemDto.selectedPizzaIngredients,
+      )
+    ) {
+      return true;
+    }
+
+    // Agrega aquí más comparaciones según sea necesario
+
+    return false; // No se encontraron cambios significativos
   }
 
   async getOpenOrders(): Promise<Order[]> {
@@ -280,6 +421,7 @@ export class OrdersService {
         'order.pizzaPreparationStatus',
         'orderItem.id',
         'orderItem.status',
+        'product.id',
         'subcategory.id',
         'subcategory.name',
         'category.id',
@@ -299,29 +441,39 @@ export class OrdersService {
         item.product.subcategory.name === 'Entradas',
     );
 
-    // Actualiza los estados de preparación de la orden si han cambiado
-    order.barPreparationStatus =
-      newOrder.barPreparationStatus ?? order.barPreparationStatus;
-    order.burgerPreparationStatus =
-      newOrder.burgerPreparationStatus ?? order.burgerPreparationStatus;
-    order.pizzaPreparationStatus =
-      newOrder.pizzaPreparationStatus ?? order.pizzaPreparationStatus;
+    // Solo actualiza barPreparationStatus si newOrder proporciona un valor diferente de 'null'
+    if (String(newOrder.barPreparationStatus) !== 'null') {
+      order.barPreparationStatus = newOrder.barPreparationStatus;
+    }
+
+    // Solo actualiza burgerPreparationStatus si newOrder proporciona un valor diferente de 'null'
+    if (String(newOrder.burgerPreparationStatus) !== 'null') {
+      order.burgerPreparationStatus = newOrder.burgerPreparationStatus;
+    }
+
+    // Solo actualiza pizzaPreparationStatus si newOrder proporciona un valor diferente de 'null'
+    if (String(newOrder.pizzaPreparationStatus) !== 'null') {
+      order.pizzaPreparationStatus = newOrder.pizzaPreparationStatus;
+    }
 
     // Actualiza solo los OrderItems que corresponden a la pantalla actualizada
     await Promise.all(
       order.orderItems.map(async (item) => {
         if (
           item.product.subcategory.category.name === 'Bebida' &&
-          newOrder.barPreparationStatus
+          String(newOrder.barPreparationStatus) !== 'null'
         ) {
           item.status = OrderItemStatus[newOrder.barPreparationStatus];
         } else if (item.product.subcategory.category.name === 'Comida') {
-          if (containsPizzaorEntradasItems && newOrder.pizzaPreparationStatus) {
+          if (
+            containsPizzaorEntradasItems &&
+            String(newOrder.pizzaPreparationStatus) !== 'null'
+          ) {
             // Si hay pizzas o entradas, todos los ítems de comida van a la pantalla de pizza
             item.status = OrderItemStatus[newOrder.pizzaPreparationStatus];
           } else if (
             !containsPizzaorEntradasItems &&
-            newOrder.burgerPreparationStatus &&
+            String(newOrder.burgerPreparationStatus) !== 'null' &&
             ['Hamburguesas', 'Ensaladas'].includes(
               item.product.subcategory.name,
             )

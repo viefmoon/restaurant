@@ -59,7 +59,6 @@ export class AppGateway {
       const subcategory = item.product?.subcategory?.name;
 
       if (category === 'Bebida') {
-        console.log('item.category', item.product?.subcategory?.category?.name);
         itemsForBarScreen.push(item);
       } else if (containsPizzaOrEntradas) {
         itemsForPizzaScreen.push(item);
@@ -152,7 +151,6 @@ export class AppGateway {
 
   async emitPendingOrderItemsToScreens(): Promise<void> {
     const pendingOrders = await this.getPendingOrders();
-
     console.log('pendingOrders', pendingOrders);
 
     pendingOrders.forEach((order) => {
@@ -314,8 +312,12 @@ export class AppGateway {
         'order.phoneNumber',
         'order.deliveryAddress',
         'order.customerName',
+        'order.barPreparationStatus',
+        'order.burgerPreparationStatus',
+        'order.pizzaPreparationStatus',
         'orderUpdate.id',
         'orderUpdate.updateAt',
+        'orderUpdate.updateNumber',
         'orderItemUpdate.id',
         'orderItemUpdate.isNewOrderItem',
         'orderItemUpdated.id',
@@ -398,8 +400,12 @@ export class AppGateway {
         'order.phoneNumber',
         'order.deliveryAddress',
         'order.customerName',
+        'order.barPreparationStatus',
+        'order.burgerPreparationStatus',
+        'order.pizzaPreparationStatus',
         'orderUpdate.id',
         'orderUpdate.updateAt',
+        'orderUpdate.updateNumber',
         'orderItemUpdate.id',
         'orderItemUpdate.isNewOrderItem',
         'orderItemUpdated.id',

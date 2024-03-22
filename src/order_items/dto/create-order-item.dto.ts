@@ -1,13 +1,14 @@
 import { Type } from 'class-transformer';
-import { 
-    IsNotEmpty, 
-    IsOptional, 
-    IsEnum, 
-    ValidateNested, 
-    IsArray, 
-    IsInt 
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsEnum,
+  ValidateNested,
+  IsArray,
+  IsInt,
 } from 'class-validator';
 import { Modifier } from 'src/modifiers/modifier.entity';
+import { Order } from 'src/orders/order.entity';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 import { ProductObservation } from 'src/product_observations/product-observation.entity';
@@ -16,70 +17,66 @@ import { Product } from 'src/products/product.entity';
 import { PizzaHalf } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
 import { isReadable } from 'stream';
 
-
 export class SelectedModifierDto {
-    @IsOptional()
-    modifier?: Modifier; 
+  @IsOptional()
+  modifier?: Modifier;
 }
 
 export class SelectedProductObservationDto {
-    @IsNotEmpty()
-    productObservation: ProductObservation; 
+  @IsNotEmpty()
+  productObservation: ProductObservation;
 }
 
 export class SelectedPizzaFlavorDto {
-    @IsNotEmpty()
-    pizzaFlavor: PizzaFlavor; 
+  @IsNotEmpty()
+  pizzaFlavor: PizzaFlavor;
 }
 
 export class SelectedPizzaIngredientDto {
-    @IsNotEmpty()
-    pizzaIngredient: PizzaIngredient; 
+  @IsNotEmpty()
+  pizzaIngredient: PizzaIngredient;
 
-    
-    @IsOptional()
-    half: PizzaHalf;
+  @IsOptional()
+  half: PizzaHalf;
 }
 
 export class CreateOrderItemDto {
+  @IsOptional()
+  comments?: string;
 
-    @IsOptional()
-    comments?: string;
+  @IsNotEmpty()
+  product: Product;
 
-    @IsOptional()
-    orderId?: number;
+  @IsOptional()
+  order: Order;
 
-    @IsNotEmpty()
-    product: Product;
+  @IsOptional()
+  productVariant?: ProductVariant;
 
-    @IsOptional()
-    productVariant?: ProductVariant;
+  @IsOptional()
+  price: number;
 
-    @IsOptional()
-    price: number;
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedModifierDto)
+  selectedModifiers?: SelectedModifierDto[];
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => SelectedModifierDto)
-    selectedModifiers?: SelectedModifierDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedProductObservationDto)
+  selectedProductObservations?: SelectedProductObservationDto[];
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => SelectedProductObservationDto)
-    selectedProductObservations?: SelectedProductObservationDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedPizzaFlavorDto)
+  selectedPizzaFlavors?: SelectedPizzaFlavorDto[];
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => SelectedPizzaFlavorDto)
-    selectedPizzaFlavors?: SelectedPizzaFlavorDto[];
-
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => SelectedPizzaIngredientDto)
-    selectedPizzaIngredients?: SelectedPizzaIngredientDto[];
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedPizzaIngredientDto)
+  selectedPizzaIngredients?: SelectedPizzaIngredientDto[];
 }
-
