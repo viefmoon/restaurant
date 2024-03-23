@@ -201,6 +201,7 @@ export class OrderItemsService {
             modifier: modifier,
           });
           await this.selectedModifierRepository.save(selectedModifier);
+          orderItem.selectedModifiers.push(selectedModifier);
         }
       }
     }
@@ -224,10 +225,12 @@ export class OrderItemsService {
           await this.selectedProductObservationRepository.save(
             selectedProductObservation,
           );
+          orderItem.selectedProductObservations.push(
+            selectedProductObservation,
+          ); // Asociar la observación al OrderItem
         }
       }
     }
-
     // Actualizar selectedPizzaFlavors
     await this.selectedPizzaFlavorRepository.delete({
       orderItem: { id: orderItemId },
@@ -245,6 +248,7 @@ export class OrderItemsService {
             },
           );
           await this.selectedPizzaFlavorRepository.save(selectedPizzaFlavor);
+          orderItem.selectedPizzaFlavors.push(selectedPizzaFlavor);
         }
       }
     }
@@ -268,6 +272,7 @@ export class OrderItemsService {
           await this.selectedPizzaIngredientRepository.save(
             selectedPizzaIngredient,
           );
+          orderItem.selectedPizzaIngredients.push(selectedPizzaIngredient);
         }
       }
     }

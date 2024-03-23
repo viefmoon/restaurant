@@ -36,6 +36,23 @@ export class OrdersController {
     return { message: 'Synchronization initiated successfully.' };
   }
 
+  @Get('/items/counts')
+  async findOrderItemsWithCounts(
+    @Query('subcategories') subcategories?: string,
+    @Query('ordersLimit') ordersLimit?: number,
+  ) {
+    const subcategoriesArray = subcategories
+      ? subcategories.split(',')
+      : undefined;
+    const ordersLimitNumber = ordersLimit
+      ? parseInt(ordersLimit.toString(), 10)
+      : undefined;
+    return this.ordersService.findOrderItemsWithCounts(
+      subcategoriesArray,
+      ordersLimitNumber,
+    );
+  }
+
   @Get('/:id')
   getOrderById(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.getOrderById(id);

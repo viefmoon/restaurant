@@ -161,6 +161,7 @@ export class OrdersService {
     let updateBurgerScreen = false;
     let hasNewItems = false;
     const updatedOrNewItems = updateOrderDto.orderItems.map(async (itemDto) => {
+      console.log('itemDto iternado', itemDto);
       if (itemDto.id && existingItemIds.includes(itemDto.id)) {
         const existingItem = await this.findOrderItemById(itemDto.id);
         if (this.itemDtoHasSignificantChanges(existingItem, itemDto)) {
@@ -259,7 +260,7 @@ export class OrdersService {
     updatedOrder.phoneNumber = updateOrderDto.phoneNumber;
     updatedOrder.deliveryAddress = updateOrderDto.deliveryAddress;
     updatedOrder.customerName = updateOrderDto.customerName;
-    order.area = updateOrderDto.area;
+    updatedOrder.area = updateOrderDto.area;
     updatedOrder.table = updateOrderDto.table;
 
     const previousOrderStatus = order.status;
@@ -300,6 +301,7 @@ export class OrdersService {
     await this.orderRepository.save(updatedOrder);
     this.appGateway.emitOrderUpdated(updatedOrder.id);
 
+    console.log('updatedOrder', updatedOrder);
     return updatedOrder;
   }
 
@@ -360,11 +362,12 @@ export class OrdersService {
         itemDto.selectedPizzaIngredients,
       )
     ) {
+      console.log('true');
       return true;
     }
 
-    // Agrega aquí más comparaciones según sea necesario
-
+    // Agrega aquí más comparaciones segn sea necesario
+    console.log('false');
     return false; // No se encontraron cambios significativos
   }
 
@@ -714,12 +717,15 @@ export class OrdersService {
       return acc;
     }, {});
 
-    return Object.entries(groupedBySubcategory).map(
+    const result = Object.entries(groupedBySubcategory).map(
       ([subcategoryName, products]) => ({
         subcategoryName,
         products,
       }),
     );
+
+    console.log(result);
+    return result;
   }
 
   async registerPayment(orderId: number, amount: number): Promise<Order> {
