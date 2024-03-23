@@ -126,6 +126,7 @@ export class OrdersService {
   async updateOrder(
     orderId: number,
     updateOrderDto: UpdateOrderDto,
+    updatedBy: string,
   ): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -149,6 +150,7 @@ export class OrdersService {
     const orderUpdate = new OrderUpdate();
     orderUpdate.order = order;
     orderUpdate.updateNumber = lastUpdate ? lastUpdate.updateNumber + 1 : 1;
+    orderUpdate.updatedBy = updatedBy;
     await this.orderUpdateRepository.save(orderUpdate);
 
     const existingItemIds = order.orderItems.map((item) => item.id);
@@ -264,32 +266,42 @@ export class OrdersService {
     const previousBarPreparationStatus = order.barPreparationStatus;
     const previousPizzaPreparationStatus = order.pizzaPreparationStatus;
     const previousBurgerPreparationStatus = order.burgerPreparationStatus;
-    
+
     // Luego, actualiza el estado de la orden solo si el estado anterior era 'prepared'
     if (hasNewItems && previousOrderStatus === OrderStatus.prepared) {
       updatedOrder.status = OrderStatus.in_preparation;
     }
-    
+
     // Actualiza el estado de las pantallas basándote en los estados anteriores y las banderas de actualización
-    if (updateBarScreen && previousBarPreparationStatus === OrderPreparationStatus.prepared) {
+    if (
+      updateBarScreen &&
+      previousBarPreparationStatus === OrderPreparationStatus.prepared
+    ) {
       updatedOrder.barPreparationStatus = OrderPreparationStatus.in_preparation;
     }
-    
-    if (updatePizzaScreen && previousPizzaPreparationStatus === OrderPreparationStatus.prepared) {
-      updatedOrder.pizzaPreparationStatus = OrderPreparationStatus.in_preparation;
+
+    if (
+      updatePizzaScreen &&
+      previousPizzaPreparationStatus === OrderPreparationStatus.prepared
+    ) {
+      updatedOrder.pizzaPreparationStatus =
+        OrderPreparationStatus.in_preparation;
     }
-    
-    if (updateBurgerScreen && previousBurgerPreparationStatus === OrderPreparationStatus.prepared) {
-      updatedOrder.burgerPreparationStatus = OrderPreparationStatus.in_preparation;
+
+    if (
+      updateBurgerScreen &&
+      previousBurgerPreparationStatus === OrderPreparationStatus.prepared
+    ) {
+      updatedOrder.burgerPreparationStatus =
+        OrderPreparationStatus.in_preparation;
     }
-    
+
     // Finalmente, guarda los cambios y emite la actualización
     await this.orderRepository.save(updatedOrder);
     this.appGateway.emitOrderUpdated(updatedOrder.id);
-    
+
     return updatedOrder;
   }
-
 
   async findOrderItemById(id: number): Promise<OrderItem> {
     return await this.orderItemRepository.findOne({
@@ -463,9 +475,18 @@ export class OrdersService {
     }
 
     // Verifica condiciones adicionales para burgerPreparationStatus
-    if (containsPizzaorEntradasItems && containsBurgerOrSaladItems && String(newOrder.pizzaPreparationStatus) !== 'null') {
-      if (order.burgerPreparationStatus === OrderPreparationStatus.not_required && 
-          [OrderPreparationStatus.in_preparation, OrderPreparationStatus.prepared].includes(newOrder.pizzaPreparationStatus)) {
+    if (
+      containsPizzaorEntradasItems &&
+      containsBurgerOrSaladItems &&
+      String(newOrder.pizzaPreparationStatus) !== 'null'
+    ) {
+      if (
+        order.burgerPreparationStatus === OrderPreparationStatus.not_required &&
+        [
+          OrderPreparationStatus.in_preparation,
+          OrderPreparationStatus.prepared,
+        ].includes(newOrder.pizzaPreparationStatus)
+      ) {
         order.burgerPreparationStatus = OrderPreparationStatus.created;
       }
     }
@@ -629,45 +650,62 @@ export class OrdersService {
     return orderItem;
   }
 
-  async findOrderItemsWithCounts(subcategories?: string[], ordersLimit?: number): Promise<any[]> {
+  async findOrderItemsWithCounts(
+    subcategories?: string[],
+    ordersLimit?: number,
+  ): Promise<any[]> {
     let recentOrderIds: number[] = [];
     if (ordersLimit) {
       const recentOrders = await this.orderRepository
-        .createQueryBuilder("order")
-        .where("order.status IN (:...orderStatuses)", { orderStatuses: ['created', 'in_preparation'] })
-        .orderBy("order.creationDate", "DESC")
+        .createQueryBuilder('order')
+        .where('order.status IN (:...orderStatuses)', {
+          orderStatuses: ['created', 'in_preparation'],
+        })
+        .orderBy('order.creationDate', 'DESC')
         .limit(ordersLimit)
         .getMany();
-  
-      recentOrderIds = recentOrders.map(order => order.id);
+
+      recentOrderIds = recentOrders.map((order) => order.id);
     }
-  
+
     const queryBuilder = this.orderItemRepository
-      .createQueryBuilder("orderItem")
-      .leftJoinAndSelect("orderItem.order", "order")
-      .leftJoinAndSelect("orderItem.product", "product")
-      .leftJoinAndSelect("product.subcategory", "subcategory")
-      .leftJoinAndSelect("orderItem.productVariant", "productVariant")
-      .where("orderItem.status IN (:...statuses)", { statuses: ['created', 'in_preparation'] })
-      .andWhere("order.status IN (:...orderStatuses)", { orderStatuses: ['created', 'in_preparation'] });
-  
+      .createQueryBuilder('orderItem')
+      .leftJoinAndSelect('orderItem.order', 'order')
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .leftJoinAndSelect('product.subcategory', 'subcategory')
+      .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
+      .where('orderItem.status IN (:...statuses)', {
+        statuses: ['created', 'in_preparation'],
+      })
+      .andWhere('order.status IN (:...orderStatuses)', {
+        orderStatuses: ['created', 'in_preparation'],
+      });
+
     if (subcategories && subcategories.length > 0) {
-      queryBuilder.andWhere("subcategory.name IN (:...subcategories)", { subcategories });
+      queryBuilder.andWhere('subcategory.name IN (:...subcategories)', {
+        subcategories,
+      });
     }
-  
+
     if (ordersLimit) {
-      queryBuilder.andWhere("order.id IN (:...recentOrderIds)", { recentOrderIds });
+      queryBuilder.andWhere('order.id IN (:...recentOrderIds)', {
+        recentOrderIds,
+      });
     }
-  
+
     const orderItems = await queryBuilder.getMany();
-  
+
     const groupedBySubcategory = orderItems.reduce((acc, item) => {
       const subcategoryName = item.product.subcategory.name;
       if (!acc[subcategoryName]) {
         acc[subcategoryName] = [];
       }
-      const productOrVariantName = item.productVariant ? `${item.product.name} - ${item.productVariant.name}` : item.product.name;
-      const existingProductOrVariant = acc[subcategoryName].find(p => p.name === productOrVariantName);
+      const productOrVariantName = item.productVariant
+        ? `${item.product.name} - ${item.productVariant.name}`
+        : item.product.name;
+      const existingProductOrVariant = acc[subcategoryName].find(
+        (p) => p.name === productOrVariantName,
+      );
       if (existingProductOrVariant) {
         existingProductOrVariant.count += 1;
       } else {
@@ -675,34 +713,39 @@ export class OrdersService {
       }
       return acc;
     }, {});
-  
-    return Object.entries(groupedBySubcategory).map(([subcategoryName, products]) => ({
-      subcategoryName,
-      products,
-    }));
+
+    return Object.entries(groupedBySubcategory).map(
+      ([subcategoryName, products]) => ({
+        subcategoryName,
+        products,
+      }),
+    );
   }
 
   async registerPayment(orderId: number, amount: number): Promise<Order> {
-    const order = await this.orderRepository.findOne({ where: { id: orderId } });
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+    });
     if (!order) {
-        throw new Error('Order not found');
+      throw new Error('Order not found');
     }
     order.amountPaid = amount;
     await this.orderRepository.save(order);
     return order;
-}
+  }
 
-async completeOrder(orderId: number): Promise<Order> {
-    const order = await this.orderRepository.findOne({ where: { id: orderId } });
+  async completeOrder(orderId: number): Promise<Order> {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+    });
     if (!order) {
-        throw new Error('Order not found');
+      throw new Error('Order not found');
     }
     if (order.status !== OrderStatus.prepared) {
-        throw new Error('Order is not in a state that can be completed');
+      throw new Error('Order is not in a state that can be completed');
     }
     order.status = OrderStatus.finished;
     await this.orderRepository.save(order);
     return order;
-}
-  
+  }
 }
