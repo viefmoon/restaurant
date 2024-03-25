@@ -117,13 +117,13 @@ export class AppGateway {
       const subcategory = item.product?.subcategory?.name;
       return subcategory === 'Pizzas' || subcategory === 'Entradas';
     });
-  
+
     const specificOrderItem = order.orderItems.find(
       (item) => item.id === orderItemId,
     );
     const category = specificOrderItem?.product?.subcategory?.category?.name;
     const subcategory = specificOrderItem?.product?.subcategory?.name;
-  
+
     // Ahora se permite que un ítem de orden se emita a múltiples pantallas.
     if (category === 'Bebida') {
       this.server.to('barScreen').emit('orderItemStatusUpdated', {
@@ -314,6 +314,7 @@ export class AppGateway {
         'order.id',
         'order.orderType',
         'order.status',
+        'order.createdBy',
         'order.creationDate',
         'order.scheduledDeliveryTime',
         'order.comments',
@@ -325,6 +326,7 @@ export class AppGateway {
         'order.pizzaPreparationStatus',
         'orderUpdate.id',
         'orderUpdate.updateAt',
+        'orderUpdate.updatedBy',
         'orderUpdate.updateNumber',
         'orderItemUpdate.id',
         'orderItemUpdate.isNewOrderItem',
@@ -402,6 +404,7 @@ export class AppGateway {
         'order.id',
         'order.orderType',
         'order.status',
+        'order.createdBy',
         'order.creationDate',
         'order.scheduledDeliveryTime',
         'order.comments',
@@ -413,6 +416,7 @@ export class AppGateway {
         'order.pizzaPreparationStatus',
         'orderUpdate.id',
         'orderUpdate.updateAt',
+        'orderUpdate.updatedBy',
         'orderUpdate.updateNumber',
         'orderItemUpdate.id',
         'orderItemUpdate.isNewOrderItem',

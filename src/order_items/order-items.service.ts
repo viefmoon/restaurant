@@ -220,7 +220,6 @@ export class OrderItemsService {
         }
       }
     }
-
     // Actualizar selectedPizzaFlavors
     await entityManager.delete(SelectedPizzaFlavor, {
       orderItem: { id: orderItemId },

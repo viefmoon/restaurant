@@ -119,6 +119,7 @@ export class OrdersService {
   async updateOrder(
     orderId: number,
     updateOrderDto: UpdateOrderDto,
+    updatedBy: string,
   ): Promise<Order> {
     return await this.orderRepository.manager.transaction(async transactionalEntityManager => {
       const order = await transactionalEntityManager.findOne(Order, {
@@ -341,6 +342,7 @@ export class OrdersService {
         itemDto.selectedPizzaIngredients,
       )
     ) {
+      console.log('true');
       return true;
     }
 
@@ -606,41 +608,55 @@ export class OrdersService {
     let recentOrderIds: number[] = [];
     if (ordersLimit) {
       const recentOrders = await this.orderRepository
-        .createQueryBuilder("order")
-        .where("order.status IN (:...orderStatuses)", { orderStatuses: ['created', 'in_preparation'] })
-        .orderBy("order.creationDate", "DESC")
+        .createQueryBuilder('order')
+        .where('order.status IN (:...orderStatuses)', {
+          orderStatuses: ['created', 'in_preparation'],
+        })
+        .orderBy('order.creationDate', 'DESC')
         .limit(ordersLimit)
         .getMany();
-  
-      recentOrderIds = recentOrders.map(order => order.id);
+
+      recentOrderIds = recentOrders.map((order) => order.id);
     }
-  
+
     const queryBuilder = this.orderItemRepository
-      .createQueryBuilder("orderItem")
-      .leftJoinAndSelect("orderItem.order", "order")
-      .leftJoinAndSelect("orderItem.product", "product")
-      .leftJoinAndSelect("product.subcategory", "subcategory")
-      .leftJoinAndSelect("orderItem.productVariant", "productVariant")
-      .where("orderItem.status IN (:...statuses)", { statuses: ['created', 'in_preparation'] })
-      .andWhere("order.status IN (:...orderStatuses)", { orderStatuses: ['created', 'in_preparation'] });
-  
+      .createQueryBuilder('orderItem')
+      .leftJoinAndSelect('orderItem.order', 'order')
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .leftJoinAndSelect('product.subcategory', 'subcategory')
+      .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
+      .where('orderItem.status IN (:...statuses)', {
+        statuses: ['created', 'in_preparation'],
+      })
+      .andWhere('order.status IN (:...orderStatuses)', {
+        orderStatuses: ['created', 'in_preparation'],
+      });
+
     if (subcategories && subcategories.length > 0) {
-      queryBuilder.andWhere("subcategory.name IN (:...subcategories)", { subcategories });
+      queryBuilder.andWhere('subcategory.name IN (:...subcategories)', {
+        subcategories,
+      });
     }
-  
+
     if (ordersLimit) {
-      queryBuilder.andWhere("order.id IN (:...recentOrderIds)", { recentOrderIds });
+      queryBuilder.andWhere('order.id IN (:...recentOrderIds)', {
+        recentOrderIds,
+      });
     }
-  
+
     const orderItems = await queryBuilder.getMany();
-  
+
     const groupedBySubcategory = orderItems.reduce((acc, item) => {
       const subcategoryName = item.product.subcategory.name;
       if (!acc[subcategoryName]) {
         acc[subcategoryName] = [];
       }
-      const productOrVariantName = item.productVariant ? `${item.product.name} - ${item.productVariant.name}` : item.product.name;
-      const existingProductOrVariant = acc[subcategoryName].find(p => p.name === productOrVariantName);
+      const productOrVariantName = item.productVariant
+        ? `${item.product.name} - ${item.productVariant.name}`
+        : item.product.name;
+      const existingProductOrVariant = acc[subcategoryName].find(
+        (p) => p.name === productOrVariantName,
+      );
       if (existingProductOrVariant) {
         existingProductOrVariant.count += 1;
       } else {
@@ -648,11 +664,16 @@ export class OrdersService {
       }
       return acc;
     }, {});
-  
-    return Object.entries(groupedBySubcategory).map(([subcategoryName, products]) => ({
-      subcategoryName,
-      products,
-    }));
+
+    const result = Object.entries(groupedBySubcategory).map(
+      ([subcategoryName, products]) => ({
+        subcategoryName,
+        products,
+      }),
+    );
+
+    console.log(result);
+    return result;
   }
 
   async registerPayment(orderId: number, amount: number): Promise<Order> {
