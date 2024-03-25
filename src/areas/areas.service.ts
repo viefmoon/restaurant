@@ -20,10 +20,6 @@ export class AreasService {
             .where("area.id = :id", { id })
             .getOne();
     
-        if (!areaWithTables) {
-            throw new Error('Área no encontrada');
-        }
-    
         return areaWithTables.tables; 
     }
 

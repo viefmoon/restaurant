@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { OrderItem, OrderItemStatus } from './order-item.entity';
 import { SelectedModifier } from 'src/selected_modifiers/selected-modifier.entity';
 import { SelectedProductObservation } from 'src/selected_product_observations/selected-product-observation.entity';
@@ -47,20 +47,22 @@ export class OrderItemsService {
     private appGateway: AppGateway, // Inject AppGateway
   ) {}
 
-  async create(createOrderItemDto: CreateOrderItemDto): Promise<OrderItem> {
-    const order = await this.orderRepository.findOne({
+  async create(createOrderItemDto: CreateOrderItemDto, transactionalEntityManager?: EntityManager): Promise<OrderItem> {
+    const entityManager = transactionalEntityManager ? transactionalEntityManager : this.orderItemRepository.manager;
+
+    const order = await entityManager.findOne(Order, {
       where: { id: createOrderItemDto.order.id },
     });
-    const product = await this.productRepository.findOne({
+    const product = await entityManager.findOne(Product, {
       where: { id: createOrderItemDto.product.id },
     });
     const productVariant = createOrderItemDto.productVariant
-      ? await this.productVariantRepository.findOne({
+      ? await entityManager.findOne(ProductVariant, {
           where: { id: createOrderItemDto.productVariant.id },
         })
       : null;
 
-    const orderItem = this.orderItemRepository.create({
+    const orderItem = entityManager.create(OrderItem, {
       order: order,
       product: product,
       productVariant: productVariant,
@@ -68,20 +70,20 @@ export class OrderItemsService {
       price: createOrderItemDto.price,
     });
 
-    const savedOrderItem = await this.orderItemRepository.save(orderItem);
+    const savedOrderItem = await entityManager.save(orderItem);
 
     // Procesar selectedModifiers
     if (createOrderItemDto.selectedModifiers?.length) {
       for (const modifierDto of createOrderItemDto.selectedModifiers) {
-        const modifier = await this.modifierRepository.findOne({
+        const modifier = await entityManager.findOne(Modifier, {
           where: { id: modifierDto.modifier.id },
         });
         if (modifier) {
-          const selectedModifier = this.selectedModifierRepository.create({
+          const selectedModifier = entityManager.create(SelectedModifier, {
             orderItem: savedOrderItem,
             modifier: modifier,
           });
-          await this.selectedModifierRepository.save(selectedModifier);
+          await entityManager.save(selectedModifier);
         }
       }
     }
@@ -90,18 +92,16 @@ export class OrderItemsService {
     if (createOrderItemDto.selectedProductObservations?.length) {
       for (const observationDto of createOrderItemDto.selectedProductObservations) {
         const productObservation =
-          await this.productObservationRepository.findOne({
+          await entityManager.findOne(ProductObservation, {
             where: { id: observationDto.productObservation.id },
           });
         if (productObservation) {
           const selectedProductObservation =
-            this.selectedProductObservationRepository.create({
+            entityManager.create(SelectedProductObservation, {
               orderItem: savedOrderItem,
               productObservation: productObservation,
             });
-          await this.selectedProductObservationRepository.save(
-            selectedProductObservation,
-          );
+          await entityManager.save(selectedProductObservation);
         }
       }
     }
@@ -109,17 +109,15 @@ export class OrderItemsService {
     // Procesar selectedPizzaFlavors
     if (createOrderItemDto.selectedPizzaFlavors?.length) {
       for (const flavorDto of createOrderItemDto.selectedPizzaFlavors) {
-        const pizzaFlavor = await this.pizzaFlavorRepository.findOne({
+        const pizzaFlavor = await entityManager.findOne(PizzaFlavor, {
           where: { id: flavorDto.pizzaFlavor.id },
         });
         if (pizzaFlavor) {
-          const selectedPizzaFlavor = this.selectedPizzaFlavorRepository.create(
-            {
-              orderItem: savedOrderItem,
-              pizzaFlavor: pizzaFlavor,
-            },
-          );
-          await this.selectedPizzaFlavorRepository.save(selectedPizzaFlavor);
+          const selectedPizzaFlavor = entityManager.create(SelectedPizzaFlavor, {
+            orderItem: savedOrderItem,
+            pizzaFlavor: pizzaFlavor,
+          });
+          await entityManager.save(selectedPizzaFlavor);
         }
       }
     }
@@ -127,23 +125,21 @@ export class OrderItemsService {
     // Procesar selectedPizzaIngredients
     if (createOrderItemDto.selectedPizzaIngredients?.length) {
       for (const ingredientDto of createOrderItemDto.selectedPizzaIngredients) {
-        const pizzaIngredient = await this.pizzaIngredientRepository.findOne({
+        const pizzaIngredient = await entityManager.findOne(PizzaIngredient, {
           where: { id: ingredientDto.pizzaIngredient.id },
         });
         if (pizzaIngredient) {
           const selectedPizzaIngredient =
-            this.selectedPizzaIngredientRepository.create({
+            entityManager.create(SelectedPizzaIngredient, {
               orderItem: savedOrderItem,
               pizzaIngredient: pizzaIngredient,
             });
-          await this.selectedPizzaIngredientRepository.save(
-            selectedPizzaIngredient,
-          );
+          await entityManager.save(selectedPizzaIngredient);
         }
       }
     }
 
-    return this.orderItemRepository.findOne({
+    return entityManager.findOne(OrderItem, {
       where: { id: savedOrderItem.id },
       relations: [
         'order',
@@ -166,8 +162,11 @@ export class OrderItemsService {
   async update(
     orderItemId: number,
     updateOrderItemDto: UpdateOrderItemDto,
+    transactionalEntityManager?: EntityManager,
   ): Promise<OrderItem> {
-    const orderItem = await this.orderItemRepository.findOne({
+    const entityManager = transactionalEntityManager ? transactionalEntityManager : this.orderItemRepository.manager;
+
+    const orderItem = await entityManager.findOne(OrderItem, {
       where: { id: orderItemId },
       relations: [
         'selectedModifiers',
@@ -177,104 +176,94 @@ export class OrderItemsService {
       ],
     });
 
-    if (!orderItem) {
-      throw new Error('OrderItem not found');
-    }
-
     orderItem.productVariant =
       updateOrderItemDto.productVariant ?? orderItem.productVariant;
     orderItem.comments = updateOrderItemDto.comments ?? orderItem.comments;
     orderItem.price = updateOrderItemDto.price ?? orderItem.price;
 
     // Actualizar selectedModifiers
-    await this.selectedModifierRepository.delete({
+    await entityManager.delete(SelectedModifier, {
       orderItem: { id: orderItemId },
     });
     if (updateOrderItemDto.selectedModifiers?.length) {
       for (const modifierDto of updateOrderItemDto.selectedModifiers) {
-        const modifier = await this.modifierRepository.findOne({
+        const modifier = await entityManager.findOne(Modifier, {
           where: { id: modifierDto.modifier.id },
         });
         if (modifier) {
-          const selectedModifier = this.selectedModifierRepository.create({
+          const selectedModifier = entityManager.create(SelectedModifier, {
             orderItem: orderItem,
             modifier: modifier,
           });
-          await this.selectedModifierRepository.save(selectedModifier);
+          await entityManager.save(selectedModifier);
         }
       }
     }
 
     // Actualizar selectedProductObservations
-    await this.selectedProductObservationRepository.delete({
+    await entityManager.delete(SelectedProductObservation, {
       orderItem: { id: orderItemId },
     });
     if (updateOrderItemDto.selectedProductObservations?.length) {
       for (const observationDto of updateOrderItemDto.selectedProductObservations) {
         const productObservation =
-          await this.productObservationRepository.findOne({
+          await entityManager.findOne(ProductObservation, {
             where: { id: observationDto.productObservation.id },
           });
         if (productObservation) {
           const selectedProductObservation =
-            this.selectedProductObservationRepository.create({
+            entityManager.create(SelectedProductObservation, {
               orderItem: orderItem,
               productObservation: productObservation,
             });
-          await this.selectedProductObservationRepository.save(
-            selectedProductObservation,
-          );
+          await entityManager.save(selectedProductObservation);
         }
       }
     }
 
     // Actualizar selectedPizzaFlavors
-    await this.selectedPizzaFlavorRepository.delete({
+    await entityManager.delete(SelectedPizzaFlavor, {
       orderItem: { id: orderItemId },
     });
     if (updateOrderItemDto.selectedPizzaFlavors?.length) {
       for (const flavorDto of updateOrderItemDto.selectedPizzaFlavors) {
-        const pizzaFlavor = await this.pizzaFlavorRepository.findOne({
+        const pizzaFlavor = await entityManager.findOne(PizzaFlavor, {
           where: { id: flavorDto.pizzaFlavor.id },
         });
         if (pizzaFlavor) {
-          const selectedPizzaFlavor = this.selectedPizzaFlavorRepository.create(
-            {
-              orderItem: orderItem,
-              pizzaFlavor: pizzaFlavor,
-            },
-          );
-          await this.selectedPizzaFlavorRepository.save(selectedPizzaFlavor);
+          const selectedPizzaFlavor = entityManager.create(SelectedPizzaFlavor, {
+            orderItem: orderItem,
+            pizzaFlavor: pizzaFlavor,
+          });
+          await entityManager.save(selectedPizzaFlavor);
         }
       }
     }
 
     // Actualizar selectedPizzaIngredients
-    await this.selectedPizzaIngredientRepository.delete({
+    await entityManager.delete(SelectedPizzaIngredient, {
       orderItem: { id: orderItemId },
     });
     if (updateOrderItemDto.selectedPizzaIngredients?.length) {
       for (const ingredientDto of updateOrderItemDto.selectedPizzaIngredients) {
-        const pizzaIngredient = await this.pizzaIngredientRepository.findOne({
+        const pizzaIngredient = await entityManager.findOne(PizzaIngredient, {
           where: { id: ingredientDto.pizzaIngredient.id },
         });
         if (pizzaIngredient) {
           const selectedPizzaIngredient =
-            this.selectedPizzaIngredientRepository.create({
+            entityManager.create(SelectedPizzaIngredient, {
               orderItem: orderItem,
               pizzaIngredient: pizzaIngredient,
               half: ingredientDto.half,
             });
-          await this.selectedPizzaIngredientRepository.save(
-            selectedPizzaIngredient,
-          );
+          await entityManager.save(selectedPizzaIngredient);
         }
       }
     }
 
-    await this.orderItemRepository.save(orderItem);
+    await entityManager.save(orderItem);
 
-    return this.orderItemRepository.findOne({
+    return entityManager.findOne(OrderItem, {
       where: { id: orderItemId },
       relations: [
         'selectedModifiers',
