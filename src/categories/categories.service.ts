@@ -11,31 +11,18 @@ export class CategoriesService {
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
     @InjectRedis() private readonly redisClient: Redis,
-  ) {
-    this.testRedisConnection();
-  }
-  async testRedisConnection() {
-    try {
-      await this.redisClient.set('test_connection', 'OK', 'EX', 30); // Expira en 30 segundos
-      const reply = await this.redisClient.get('test_connection');
-      console.log('Test Redis connection:', reply); // Debería imprimir 'OK'
-    } catch (error) {
-      console.error('Redis connection test failed:', error);
-    }
-  }
+  ) {}
+
   async findAllWithSubcategoriesAndProducts(): Promise<Category[]> {
     const cacheKey = 'categories_with_details';
     try {
-      console.log('Intentando recuperar de Redis');
+      // Intentar recuperar de Redis
       const cached = await this.redisClient.get(cacheKey);
       if (cached) {
-        console.log('Datos recuperados de Redis');
         return JSON.parse(cached);
       }
 
-      console.log(
-        'Datos no encontrados en Redis, buscando en la base de datos',
-      );
+      // Si no está en caché, buscar en la base de datos
       const categories = await this.categoryRepository.find({
         relations: [
           'subcategories',
@@ -50,17 +37,16 @@ export class CategoriesService {
         ],
       });
 
-      console.log('Guardando datos en Redis');
+      // Guardar el resultado en Redis antes de retornar
       await this.redisClient.set(
         cacheKey,
         JSON.stringify(categories),
         'EX',
         10,
-      ); // Expira en 10 segundos
+      ); // Expira en 1 hora
 
       return categories;
     } catch (error) {
-      console.error('Error al recuperar las categorías', error);
       throw new HttpException(
         'Error retrieving categories',
         HttpStatus.INTERNAL_SERVER_ERROR,
