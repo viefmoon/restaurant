@@ -40,7 +40,13 @@ export class CategoriesService {
         relations: [
           'subcategories',
           'subcategories.products',
-          // Incluir todas las relaciones necesarias
+          'subcategories.products.productVariants',
+          'subcategories.products.modifierTypes',
+          'subcategories.products.modifierTypes.modifiers',
+          'subcategories.products.productObservationTypes',
+          'subcategories.products.productObservationTypes.productObservations',
+          'subcategories.products.pizzaFlavors',
+          'subcategories.products.pizzaIngredients',
         ],
       });
 
