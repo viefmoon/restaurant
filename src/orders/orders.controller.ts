@@ -29,6 +29,10 @@ export class OrdersController {
   getOpenOrders() {
     return this.ordersService.getOpenOrders();
   }
+  @Get('/closed')
+  getClosedOrders() {
+    return this.ordersService.getClosedOrders();
+  }
 
   @Get('/synchronize')
   async synchronizeData() {

@@ -176,6 +176,10 @@ export class OrderItemsService {
       ],
     });
 
+    if (orderItem.status === OrderItemStatus.prepared) {
+      throw new Error('No se permiten actualizaciones a un OrderItem con estado "prepared"');
+    }
+
     orderItem.productVariant =
       updateOrderItemDto.productVariant ?? orderItem.productVariant;
     orderItem.comments = updateOrderItemDto.comments ?? orderItem.comments;

@@ -21,9 +21,10 @@ import { AppGateway } from 'src/app.gateway';
 import { OrderUpdate } from 'src/order_updates/order-update.entity';
 import { OrderItemUpdate } from 'src/order_item_updates/order-item-update.entity';
 import { OrderAdjustment } from 'src/order_adjustment/order-adjustment.entity';
+import { OrderCounter } from 'src/order_counters/order-counter.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, Table, Area, OrderItem, Product, ProductVariant, ProductObservation, SelectedProductObservation, Modifier, SelectedModifier, PizzaFlavor, SelectedPizzaFlavor, PizzaIngredient, SelectedPizzaIngredient, OrderUpdate, OrderItemUpdate, OrderAdjustment])], 
+  imports: [TypeOrmModule.forFeature([Order, Table, Area, OrderItem, Product, ProductVariant, ProductObservation, SelectedProductObservation, Modifier, SelectedModifier, PizzaFlavor, SelectedPizzaFlavor, PizzaIngredient, SelectedPizzaIngredient, OrderUpdate, OrderItemUpdate, OrderAdjustment, OrderCounter])], 
   providers: [OrdersService, OrderItemsService, AppGateway], 
   controllers: [OrdersController], 
   exports: [TypeOrmModule]

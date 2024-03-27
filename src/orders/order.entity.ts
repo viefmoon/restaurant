@@ -31,6 +31,12 @@ export class Order {
     id: number;
 
     @Column({
+        type: "int",
+        nullable: true
+    })
+    orderNumber: number;
+
+    @Column({
         type: "enum",
         enum: OrderType,
     })

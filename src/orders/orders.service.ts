@@ -12,6 +12,7 @@ import { Product } from 'src/products/product.entity';
 import { OrderUpdate } from 'src/order_updates/order-update.entity';
 import { OrderItemUpdate } from 'src/order_item_updates/order-item-update.entity';
 import { OrderAdjustment } from 'src/order_adjustment/order-adjustment.entity';
+import { OrderCounter } from 'src/order_counters/order-counter.entity';
 
 @Injectable()
 export class OrdersService {
@@ -30,6 +31,8 @@ export class OrdersService {
     private readonly orderItemUpdateRepository: Repository<OrderItemUpdate>,
     @InjectRepository(OrderAdjustment)
     private readonly orderAdjustmentRepository: Repository<OrderAdjustment>,
+    @InjectRepository(OrderCounter)
+    private readonly orderCounterRepository: Repository<OrderCounter>,
     private readonly orderItemService: OrderItemsService,
     private readonly appGateway: AppGateway,
   ) {}
@@ -106,6 +109,8 @@ export class OrdersService {
           area: createOrderDto.area,
           table: createOrderDto.table,
           orderItems: [],
+          orderNumber: await this.getNextOrderNumber(new Date()), 
+
         });
 
         const savedOrder = await transactionalEntityManager.save(order);
@@ -131,7 +136,7 @@ export class OrdersService {
 
       const completeOrder = await transactionalEntityManager.findOne(Order, {
         where: { id: savedOrder.id },
-        relations: ['orderItems', 'table', 'orderAdjustments'], // Agrega 'orderAdjustments' a las relaciones
+        relations: ['orderItems', 'table', 'orderAdjustments'],
       });
       await this.appGateway.emitNewOrderToScreens(completeOrder.id);
       return completeOrder;
@@ -264,9 +269,19 @@ export class OrdersService {
         const newItemIds = updateOrderDto.orderItems
           .filter((item) => item.id)
           .map((item) => item.id);
-        const itemsToDelete = existingItemIds.filter(
-          (id) => !newItemIds.includes(id),
-        );
+  
+        // Obtener los OrderItems existentes con su estado
+        const existingItems = await transactionalEntityManager.find(OrderItem, {
+          where: { id: In(existingItemIds) },
+          select: ['id', 'status'],
+        });
+  
+        // Filtrar los OrderItems que se pueden eliminar (estado diferente a "prepared")
+        const itemsToDelete = existingItems
+          .filter((item) => item.status !== OrderItemStatus.prepared)
+          .map((item) => item.id)
+          .filter((id) => !newItemIds.includes(id));
+  
         if (itemsToDelete.length > 0) {
           await transactionalEntityManager.delete(OrderItem, itemsToDelete);
         }
@@ -331,7 +346,7 @@ export class OrdersService {
         const previousPizzaPreparationStatus = order.pizzaPreparationStatus;
         const previousBurgerPreparationStatus = order.burgerPreparationStatus;
 
-        // Luego, actualiza el estado de la orden solo si el estado anterior era 'prepared'
+        // Luego, actualiza el estado de la orden solo si el estado anterior era 'prepared', lo pone en preparacio
         if (hasNewItems && previousOrderStatus === OrderStatus.prepared) {
           updatedOrder.status = OrderStatus.in_preparation;
         }
@@ -453,15 +468,23 @@ export class OrdersService {
     return orders;
   }
 
+  async getClosedOrders(): Promise<Order[]> {
+    const orders = await this.orderRepository.find({
+      where: {
+        status: In([
+          OrderStatus.finished,
+          OrderStatus.canceled,
+        ]),
+      },
+      relations: ['area', 'table'],
+    });
+    return orders;
+  }
+
   async getOrderById(orderId: number): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: {
         id: orderId,
-        status: In([
-          OrderStatus.created,
-          OrderStatus.in_preparation,
-          OrderStatus.prepared,
-        ]),
       },
       relations: [
         'orderAdjustments',
@@ -529,6 +552,11 @@ export class OrdersService {
             item.product.subcategory.name === 'Ensaladas',
         );
 
+                // Variables para almacenar los estados de preparación originales
+        const originalBarPreparationStatus = order.barPreparationStatus;
+        const originalBurgerPreparationStatus = order.burgerPreparationStatus;
+        const originalPizzaPreparationStatus = order.pizzaPreparationStatus;
+
         // Solo actualiza barPreparationStatus si newOrder proporciona un valor diferente de 'null'
         if (String(newOrder.barPreparationStatus) !== 'null') {
           order.barPreparationStatus = newOrder.barPreparationStatus;
@@ -558,7 +586,8 @@ export class OrdersService {
               OrderPreparationStatus.prepared,
             ].includes(newOrder.pizzaPreparationStatus)
           ) {
-            order.burgerPreparationStatus = OrderPreparationStatus.created;
+            order.burgerPreparationStatus = OrderPreparationStatus.created; //habilito la preparacion de bar
+            newOrder.burgerPreparationStatus = OrderPreparationStatus.created; //habilito la preparacion de bar
           }
         }
 
@@ -569,24 +598,45 @@ export class OrdersService {
               item.product.subcategory.category.name === 'Bebida' &&
               String(newOrder.barPreparationStatus) !== 'null'
             ) {
-              item.status = OrderItemStatus[newOrder.barPreparationStatus];
+              // Si el estado original era "prepared" y el nuevo estado es "in_preparation", no actualiza el estado del orderItem
+              if (
+                originalBarPreparationStatus === OrderPreparationStatus.prepared &&
+                newOrder.barPreparationStatus === OrderPreparationStatus.in_preparation
+              ) {
+                return item;
+              }
+              item.status = OrderItemStatus[order.barPreparationStatus];
             } else if (item.product.subcategory.category.name === 'Comida') {
               if (
                 containsPizzaorEntradasItems &&
                 String(newOrder.pizzaPreparationStatus) !== 'null'
               ) {
-                // Si hay pizzas o entradas, todos los ítems de comida van a la pantalla de pizza
-                item.status = OrderItemStatus[newOrder.pizzaPreparationStatus];
+                // Si el estado original era "prepared" y el nuevo estado es "in_preparation", no actualiza el estado del orderItem
+                if (
+                  originalPizzaPreparationStatus === OrderPreparationStatus.prepared &&
+                  newOrder.pizzaPreparationStatus === OrderPreparationStatus.in_preparation
+                ) {
+                  return item;
+                }
+                item.status = OrderItemStatus[order.pizzaPreparationStatus];
               } else if (
                 String(newOrder.burgerPreparationStatus) !== 'null' &&
                 ['Hamburguesas', 'Ensaladas'].includes(
                   item.product.subcategory.name,
                 )
               ) {
-                item.status = OrderItemStatus[newOrder.burgerPreparationStatus];
+                // Si el estado original era "prepared" y el nuevo estado es "in_preparation", no actualiza el estado del orderItem
+                if (
+                  originalBurgerPreparationStatus === OrderPreparationStatus.prepared &&
+                  newOrder.burgerPreparationStatus === OrderPreparationStatus.in_preparation
+                ) {
+                  return item;
+                }
+                item.status = OrderItemStatus[order.burgerPreparationStatus];
               }
             }
             await transactionalEntityManager.save(item);
+            return item;
           }),
         );
 
@@ -646,6 +696,7 @@ export class OrdersService {
       },
     );
   }
+  
   async updateOrderItemStatus(newOrderItem: OrderItem): Promise<OrderItem> {
     return await this.orderItemRepository.manager.transaction(
       async (transactionalEntityManager) => {
@@ -675,12 +726,26 @@ export class OrdersService {
             orderItemId: newOrderItem.id,
           })
           .getOne();
-
+  
+        // Verifica el estado de la Order relacionada
+        if (orderItem.order.status === OrderStatus.created) {
+          // Si la Order está en estado 'created', no se permiten cambios de estado de OrderItems
+          throw new Error('No se permiten cambios de estado de OrderItems cuando la Order está en estado "created"');
+        } else if (orderItem.order.status === OrderStatus.in_preparation) {
+          // Si la Order está en estado 'in_preparation', solo se permiten cambios de estado a 'prepared' y 'in_preparation'
+          if (newOrderItem.status !== OrderItemStatus.prepared && newOrderItem.status !== OrderItemStatus.in_preparation) {
+            throw new Error('Solo se permiten cambios de estado de OrderItems a "prepared" y "in_preparation" cuando la Order está en estado "in_preparation"');
+          }
+        } else if (orderItem.order.status === OrderStatus.prepared) {
+          // Si la Order está en estado 'prepared', no se permiten cambios de estado de OrderItems
+          throw new Error('No se permiten cambios de estado de OrderItems cuando la Order está en estado "prepared"');
+        }
+  
         // Actualiza el estado del OrderItem
         orderItem.status = newOrderItem.status;
-
+  
         await transactionalEntityManager.save(orderItem);
-
+  
         // Recupera el objeto Order completo con todas las relaciones necesarias para emitOrderItemStatusUpdated
         const completeOrder = await transactionalEntityManager
           .createQueryBuilder(Order, 'order')
@@ -703,7 +768,7 @@ export class OrdersService {
           ])
           .where('order.id = :orderId', { orderId: orderItem.order.id })
           .getOne();
-
+  
         // Llama a emitOrderItemStatusUpdated con el objeto Order completo y el ID del OrderItem actualizado
         await this.appGateway.emitOrderItemStatusUpdated(
           completeOrder,
@@ -828,6 +893,29 @@ export class OrdersService {
         order.status = OrderStatus.canceled;
         await transactionalEntityManager.save(order);
         return order;
+      },
+    );
+  }
+
+  private async getNextOrderNumber(date: Date): Promise<number> {
+    return await this.orderCounterRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const orderCounter = await transactionalEntityManager.findOne(OrderCounter, {
+          where: { date },
+        });
+
+        if (orderCounter) {
+          orderCounter.counter++;
+          await transactionalEntityManager.save(orderCounter);
+          return orderCounter.counter;
+        } else {
+          const newOrderCounter = transactionalEntityManager.create(OrderCounter, {
+            date,
+            counter: 1,
+          });
+          await transactionalEntityManager.save(newOrderCounter);
+          return 1;
+        }
       },
     );
   }
