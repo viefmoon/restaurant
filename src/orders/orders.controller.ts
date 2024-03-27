@@ -58,15 +58,12 @@ export class OrdersController {
     return this.ordersService.getOrderById(id);
   }
 
-  @Patch('/:id')
-  async updateOrder(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateOrderDto: UpdateOrderDto,
-    @Query('userName') userName: string, // Extrae el nombre del usuario de la URL
-  ) {
-    return this.ordersService.updateOrder(id, updateOrderDto, userName);
+  
+  @Patch('/:id/cancel')
+  async cancelOrder(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.cancelOrder(id);
   }
-
+  
   @Patch('/:id/status')
   async updateOrderPreparationStatus(@Body() order: Order) {
     return this.ordersService.updateOrderPreparationStatus(order);
@@ -77,7 +74,7 @@ export class OrdersController {
     return this.ordersService.updateOrderItemStatus(orderItem);
   }
 
-  @Patch('/:id/pay')
+  @Patch('/:id/payment')
   async registerPayment(
     @Param('id', ParseIntPipe) id: number,
     @Body() paymentDto: any,
@@ -89,4 +86,14 @@ export class OrdersController {
   async completeOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.completeOrder(id);
   }
+
+  @Patch('/:id')
+  async updateOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateOrderDto: UpdateOrderDto,
+    @Query('userName') userName: string, // Extrae el nombre del usuario de la URL
+  ) {
+    return this.ordersService.updateOrder(id, updateOrderDto, userName);
+  }
+
 }

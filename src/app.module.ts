@@ -24,13 +24,13 @@ import { AppGateway } from './app.gateway';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
-    RedisModule.forRoot({
-      type: 'single',
-      options: {
-        host: process.env.REDIS_HOST,
-        port: parseInt(process.env.REDIS_PORT, 10),
-      },
-    }),
+    // RedisModule.forRoot({
+    //   type: 'single',
+    //   options: {
+    //     host: process.env.REDIS_HOST,
+    //     port: parseInt(process.env.REDIS_PORT, 10),
+    //   },
+    // }),
     UsersModule,
     AuthModule,
     RolesModule,

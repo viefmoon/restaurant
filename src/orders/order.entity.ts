@@ -3,6 +3,7 @@ import { OrderItem } from '../order_items/order-item.entity';
 import { OrderUpdate } from '../order_updates/order-update.entity';
 import { Table } from '../tables/table.entity';
 import { Area } from 'src/areas/area.entity';
+import { OrderAdjustment } from 'src/order_adjustment/order-adjustment.entity';
 export enum OrderType {
     dineIn = "dineIn",
     delivery = "delivery",
@@ -96,6 +97,9 @@ export class Order {
 
     @OneToMany(() => OrderItem, orderItem => orderItem.order, { nullable: true })
     orderItems: OrderItem[];
+
+    @OneToMany(() => OrderAdjustment, orderAdjustment => orderAdjustment.order, { nullable: true })
+    orderAdjustments: OrderAdjustment[];
 
     @OneToMany(() => OrderUpdate, orderUpdate => orderUpdate.order, { nullable: true })
     orderUpdates: OrderUpdate[];

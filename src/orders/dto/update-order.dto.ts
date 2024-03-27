@@ -4,6 +4,7 @@ import { Type } from 'class-transformer';
 import { Area } from 'src/areas/area.entity';
 import { Table } from 'src/tables/table.entity';
 import { UpdateOrderItemDto } from 'src/order_items/dto/update-order-item.dto';
+import { UpdateOrderAdjustmentDto } from 'src/order_adjustment/dto/update-order-adjustment.dto';
 
 export class UpdateOrderDto {
     @IsNotEmpty()
@@ -36,6 +37,12 @@ export class UpdateOrderDto {
 
     @IsOptional()
     totalCost?: number;
+
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => UpdateOrderAdjustmentDto)
+    orderAdjustments: UpdateOrderAdjustmentDto[];
 
     @IsOptional()
     area?: Area;

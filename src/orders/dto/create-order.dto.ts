@@ -1,57 +1,73 @@
-import { IsEnum, IsOptional, IsString, ValidateNested, IsArray, IsInt, IsDate } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  ValidateNested,
+  IsArray,
+  IsInt,
+  IsDate,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderStatus, OrderType } from '../order.entity';
 import { CreateOrderItemDto } from 'src/order_items/dto/create-order-item.dto';
 import { Area } from 'src/areas/area.entity';
 import { Table } from 'src/tables/table.entity';
+import { CreateOrderAdjustmentDto } from 'src/order_adjustment/dto/create-order-adjustment.dto';
+
 
 export class CreateOrderDto {
-    @IsEnum(OrderType)
-    orderType: OrderType;
+  @IsEnum(OrderType)
+  orderType: OrderType;
 
-    @IsOptional()
-    @IsString()
-    comments?: string;
+  @IsOptional()
+  @IsString()
+  comments?: string;
 
-    @IsOptional()
-    @IsEnum(OrderStatus)  
-    status: OrderStatus
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
 
-    @IsOptional()
-    @IsString()
-    deliveryAddress?: string;
+  
+  createdAt: Date;
 
-    
-    @IsOptional()
-    @IsDate()
-    @Type(() => Date) 
-    scheduledDeliveryTime?: Date;
+  @IsOptional()
+  @IsString()
+  deliveryAddress?: string;
 
-    @IsOptional()
-    @IsString()
-    phoneNumber?: string;
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  scheduledDeliveryTime?: Date;
 
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
 
-    @IsOptional()
-    @IsString()
-    customerName?: string;
+  @IsOptional()
+  @IsString()
+  customerName?: string;
 
-    @IsOptional()
-    @IsString()
-    createdBy?: string;
+  @IsOptional()
+  @IsString()
+  createdBy?: string;
 
-    
-    @IsOptional()
-    totalCost?: number;
+  @IsOptional()
+  totalCost?: number;
 
-    @IsOptional()
-    area?: Area;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderAdjustmentDto)
+  orderAdjustments: CreateOrderAdjustmentDto[];
 
-    @IsOptional()
-    table?: Table;
+  @IsOptional()
+  area?: Area;
 
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => CreateOrderItemDto)
-    orderItems: CreateOrderItemDto[];
+  @IsOptional()
+  table?: Table;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemDto)
+  orderItems: CreateOrderItemDto[];
 }
