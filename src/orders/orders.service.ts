@@ -124,15 +124,15 @@ export class OrdersService {
             transactionalEntityManager,
           );
         }
-
-              // Crea y asocia los orderAdjustments a la orden
-      for (const adjustmentDto of createOrderDto.orderAdjustments) {
-        const orderAdjustment = transactionalEntityManager.create(OrderAdjustment, {
-          ...adjustmentDto,
-          order: savedOrder,
-        });
-        await transactionalEntityManager.save(orderAdjustment);
-      }
+        if (createOrderDto.orderAdjustments && Array.isArray(createOrderDto.orderAdjustments)) {
+          for (const adjustmentDto of createOrderDto.orderAdjustments) {
+            const orderAdjustment = transactionalEntityManager.create(OrderAdjustment, {
+              ...adjustmentDto,
+              order: savedOrder,
+            });
+            await transactionalEntityManager.save(orderAdjustment);
+          }
+        }
 
       const completeOrder = await transactionalEntityManager.findOne(Order, {
         where: { id: savedOrder.id },
@@ -172,6 +172,7 @@ export class OrdersService {
 
         const orderUpdate = new OrderUpdate();
         orderUpdate.order = order;
+        orderUpdate.updatedBy = updatedBy;
         orderUpdate.updateNumber = lastUpdate ? lastUpdate.updateNumber + 1 : 1;
         await transactionalEntityManager.save(orderUpdate);
 
@@ -510,6 +511,7 @@ export class OrdersService {
         'orderItems.selectedPizzaIngredients.pizzaIngredient',
       ],
     });
+    console.log("order encontrada ", JSON.stringify(order));
     return order;
   }
 
@@ -647,8 +649,15 @@ export class OrdersService {
           order.pizzaPreparationStatus,
         ];
 
-        // Si al menos uno de los estados de preparación está en 'in_preparation', entonces la orden está 'in_preparation'
+        // Si todos los estados de preparación están en 'created', entonces la orden está 'created'
         if (
+          preparationStatuses.every((status) =>
+            status === OrderPreparationStatus.created
+          )
+        ) {
+          order.status = OrderStatus.created;
+        } else if (
+          // Si al menos uno de los estados de preparación está en 'in_preparation', entonces la orden está 'in_preparation'
           preparationStatuses.includes(OrderPreparationStatus.in_preparation)
         ) {
           order.status = OrderStatus.in_preparation;
@@ -665,7 +674,6 @@ export class OrdersService {
         }
 
         await transactionalEntityManager.save(order);
-
         const completeOrder = await transactionalEntityManager
           .createQueryBuilder(Order, 'order')
           .leftJoinAndSelect('order.orderItems', 'orderItem')
@@ -698,6 +706,8 @@ export class OrdersService {
   }
   
   async updateOrderItemStatus(newOrderItem: OrderItem): Promise<OrderItem> {
+
+    console.log("hola");
     return await this.orderItemRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const orderItem = await transactionalEntityManager
