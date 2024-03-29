@@ -360,6 +360,7 @@ export class AppGateway {
         'pizzaIngredient.name',
       ])
       .getMany();
+      
   }
 
   private async getOrderById(orderId: number): Promise<Order | undefined> {
