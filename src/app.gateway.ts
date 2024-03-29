@@ -159,7 +159,6 @@ export class AppGateway {
 
   async emitPendingOrderItemsToScreens(): Promise<void> {
     const pendingOrders = await this.getPendingOrders();
-    console.log('pendingOrders', pendingOrders);
 
     pendingOrders.forEach((order) => {
       const orderWithoutItems = {
@@ -341,7 +340,7 @@ export class AppGateway {
         'product.id',
         'product.name',
         'subcategory.id',
-        'subcategory',
+        'subcategory.name',
         'category.id',
         'category.name',
         'productVariant.id',

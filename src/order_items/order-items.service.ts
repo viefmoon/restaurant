@@ -185,6 +185,8 @@ export class OrderItemsService {
     orderItem.comments = updateOrderItemDto.comments ?? orderItem.comments;
     orderItem.price = updateOrderItemDto.price ?? orderItem.price;
 
+    await entityManager.save(orderItem);
+
     // Actualizar selectedModifiers
     await entityManager.delete(SelectedModifier, {
       orderItem: { id: orderItemId },
@@ -229,6 +231,7 @@ export class OrderItemsService {
       orderItem: { id: orderItemId },
     });
     if (updateOrderItemDto.selectedPizzaFlavors?.length) {
+      console.log('updateOrderItemDto.selectedPizzaFlavors', updateOrderItemDto.selectedPizzaFlavors);
       for (const flavorDto of updateOrderItemDto.selectedPizzaFlavors) {
         const pizzaFlavor = await entityManager.findOne(PizzaFlavor, {
           where: { id: flavorDto.pizzaFlavor.id },
@@ -238,7 +241,8 @@ export class OrderItemsService {
             orderItem: orderItem,
             pizzaFlavor: pizzaFlavor,
           });
-          await entityManager.save(selectedPizzaFlavor);
+          const savedSelectedPizzaFlavor = await entityManager.save(selectedPizzaFlavor);
+          console.log('selectedPizzaFlavor guardado:', savedSelectedPizzaFlavor);
         }
       }
     }
@@ -263,8 +267,6 @@ export class OrderItemsService {
         }
       }
     }
-
-    await entityManager.save(orderItem);
 
     return entityManager.findOne(OrderItem, {
       where: { id: orderItemId },

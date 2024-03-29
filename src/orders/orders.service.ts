@@ -38,7 +38,9 @@ export class OrdersService {
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
-    return await this.orderRepository.manager.transaction(
+
+    let savedOrderId: number;
+    const completeOrder = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
         // Paso 1: Consulta los productos por ID
         const productIds = createOrderDto.orderItems.map(
@@ -114,6 +116,7 @@ export class OrdersService {
         });
 
         const savedOrder = await transactionalEntityManager.save(order);
+        savedOrderId = savedOrder.id;
 
         for (const itemDto of orderItemsWithDetails) {
           await this.orderItemService.create(
@@ -134,14 +137,21 @@ export class OrdersService {
           }
         }
 
-      const completeOrder = await transactionalEntityManager.findOne(Order, {
-        where: { id: savedOrder.id },
-        relations: ['orderItems', 'table', 'orderAdjustments'],
-      });
-      await this.appGateway.emitNewOrderToScreens(completeOrder.id);
-      return completeOrder;
+        return await transactionalEntityManager.findOne(Order, {
+          where: { id: savedOrder.id },
+          relations: ['orderItems', 'table', 'orderAdjustments'],
+        });
       },
     );
+
+    if (savedOrderId) {
+      await this.appGateway.emitNewOrderToScreens(savedOrderId);
+    }
+    else {
+      throw new HttpException('Error al crear la orden', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  
+    return completeOrder;
   }
 
   async updateOrder(
@@ -149,8 +159,11 @@ export class OrdersService {
     updateOrderDto: UpdateOrderDto,
     updatedBy: string,
   ): Promise<Order> {
-    return await this.orderRepository.manager.transaction(
+    let updatedOrderId: number;
+    
+    const updatedOrder = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
+        console.log('updateOrderDto', updateOrderDto);
         const order = await transactionalEntityManager.findOne(Order, {
           where: { id: orderId },
           relations: [
@@ -378,12 +391,19 @@ export class OrdersService {
         }
 
         // Finalmente, guarda los cambios y emite la actualización
-        await transactionalEntityManager.save(updatedOrder);
-        this.appGateway.emitOrderUpdated(updatedOrder.id);
-
-        return updatedOrder;
+        const savedOrder = await transactionalEntityManager.save(updatedOrder);
+        updatedOrderId = savedOrder.id;
+  
+        return savedOrder;
       },
     );
+  
+    // Asegúrate de que la transacción se haya completado antes de emitir el evento
+    if (updatedOrderId) {
+      this.appGateway.emitOrderUpdated(updatedOrderId);
+    }
+  
+    return updatedOrder;
   }
 
   async findOrderItemById(
@@ -483,40 +503,64 @@ export class OrdersService {
   }
 
   async getOrderById(orderId: number): Promise<Order> {
-    const order = await this.orderRepository.findOne({
-      where: {
-        id: orderId,
-      },
-      relations: [
-        'orderAdjustments',
-        'orderItems',
-        'table',
-        'area',
-        'orderItems.product',
-        'orderItems.product.productVariants',
-        'orderItems.product.pizzaFlavors',
-        'orderItems.product.pizzaIngredients',
-        'orderItems.product.modifierTypes',
-        'orderItems.product.modifierTypes.modifiers',
-        'orderItems.product.productObservationTypes',
-        'orderItems.product.productObservationTypes.productObservations',
-        'orderItems.productVariant',
-        'orderItems.selectedModifiers',
-        'orderItems.selectedModifiers.modifier',
-        'orderItems.selectedProductObservations',
-        'orderItems.selectedProductObservations.productObservation',
-        'orderItems.selectedPizzaFlavors',
-        'orderItems.selectedPizzaFlavors.pizzaFlavor',
-        'orderItems.selectedPizzaIngredients',
-        'orderItems.selectedPizzaIngredients.pizzaIngredient',
-      ],
-    });
-    console.log("order encontrada ", JSON.stringify(order));
-    return order;
+    const queryBuilder = this.orderRepository.createQueryBuilder('order');
+  
+    queryBuilder
+      .where('order.id = :orderId', { orderId })
+      .select([
+        'order.id',
+        'order.orderNumber',
+        'order.orderType',
+        'order.status',
+        'order.amountPaid',
+        'order.comments',
+        'order.totalCost',
+        'order.scheduledDeliveryTime',
+        'order.phoneNumber',
+        'order.deliveryAddress',
+        'order.customerName',
+      ])
+      .leftJoinAndSelect('order.area', 'area')
+      .addSelect(['area.id', 'area.name'])
+      .leftJoinAndSelect('order.table', 'table')
+      .addSelect(['table.id', 'table.number', 'table.status'])
+      .leftJoinAndSelect('order.orderItems', 'orderItem')
+      .addSelect(['orderItem.id', 'orderItem.status', 'orderItem.price', 'orderItem.comments'])
+      .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
+      .addSelect(['productVariant.id', 'productVariant.name', 'productVariant.price'])
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .addSelect(['product.id',])
+      .leftJoinAndSelect('orderItem.selectedProductObservations', 'selectedProductObservation')
+      .addSelect(['selectedProductObservation.id'])
+      .leftJoinAndSelect('selectedProductObservation.productObservation', 'selectedProductObservationDetail')
+      .addSelect(['selectedProductObservationDetail.id', 'selectedProductObservationDetail.name'])
+      .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifier')
+      .addSelect(['selectedModifier.id'])
+      .leftJoinAndSelect('selectedModifier.modifier', 'selectedModifierDetail')
+      .addSelect(['selectedModifierDetail.id', 'selectedModifierDetail.name', 'selectedModifierDetail.price'])
+      .leftJoinAndSelect('orderItem.selectedPizzaFlavors', 'selectedPizzaFlavor')
+      .addSelect(['selectedPizzaFlavor.id'])
+      .leftJoinAndSelect('selectedPizzaFlavor.pizzaFlavor', 'selectedPizzaFlavorDetail')
+      .addSelect(['selectedPizzaFlavorDetail.id', 'selectedPizzaFlavorDetail.name', 'selectedPizzaFlavorDetail.price'])
+      .leftJoinAndSelect('orderItem.selectedPizzaIngredients', 'selectedPizzaIngredient')
+      .addSelect(['selectedPizzaIngredient.id, selectedPizzaIngredient.half'])
+      .leftJoinAndSelect('selectedPizzaIngredient.pizzaIngredient', 'selectedPizzaIngredientDetail')
+      .addSelect(['selectedPizzaIngredientDetail.id', 'selectedPizzaIngredientDetail.name', 'selectedPizzaIngredientDetail.price'])
+      .leftJoinAndSelect('order.orderAdjustments', 'orderAdjustment')
+      .addSelect(['orderAdjustment.id', 'orderAdjustment.name', 'orderAdjustment.amount']);
+  
+    const result = await queryBuilder.getOne();
+  
+    if (!result) {
+      throw new Error('Order not found');
+    }
+    return result;
   }
 
   async updateOrderPreparationStatus(newOrder: Order): Promise<Order> {
-    return await this.orderRepository.manager.transaction(
+    let updatedOrderId: number;
+
+    const completeOrder = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const order = await transactionalEntityManager
           .createQueryBuilder(Order, 'order')
@@ -610,7 +654,7 @@ export class OrdersService {
               item.status = OrderItemStatus[order.barPreparationStatus];
             } else if (item.product.subcategory.category.name === 'Comida') {
               if (
-                containsPizzaorEntradasItems &&
+                ['Pizzas', 'Entradas'].includes(item.product.subcategory.name) &&
                 String(newOrder.pizzaPreparationStatus) !== 'null'
               ) {
                 // Si el estado original era "prepared" y el nuevo estado es "in_preparation", no actualiza el estado del orderItem
@@ -622,10 +666,8 @@ export class OrdersService {
                 }
                 item.status = OrderItemStatus[order.pizzaPreparationStatus];
               } else if (
-                String(newOrder.burgerPreparationStatus) !== 'null' &&
-                ['Hamburguesas', 'Ensaladas'].includes(
-                  item.product.subcategory.name,
-                )
+                ['Hamburguesas', 'Ensaladas'].includes(item.product.subcategory.name) &&
+                String(newOrder.burgerPreparationStatus) !== 'null'
               ) {
                 // Si el estado original era "prepared" y el nuevo estado es "in_preparation", no actualiza el estado del orderItem
                 if (
@@ -648,11 +690,12 @@ export class OrdersService {
           order.burgerPreparationStatus,
           order.pizzaPreparationStatus,
         ];
+        
 
-        // Si todos los estados de preparación están en 'created', entonces la orden está 'created'
+        // Si todos los estados de preparación están en 'created' o 'not_required', entonces la orden está 'created'
         if (
           preparationStatuses.every((status) =>
-            status === OrderPreparationStatus.created
+            status === OrderPreparationStatus.created || status === OrderPreparationStatus.not_required
           )
         ) {
           order.status = OrderStatus.created;
@@ -674,7 +717,8 @@ export class OrdersService {
         }
 
         await transactionalEntityManager.save(order);
-        const completeOrder = await transactionalEntityManager
+      updatedOrderId = order.id;
+      return await transactionalEntityManager
           .createQueryBuilder(Order, 'order')
           .leftJoinAndSelect('order.orderItems', 'orderItem')
           .leftJoinAndSelect('orderItem.product', 'product')
@@ -698,17 +742,22 @@ export class OrdersService {
           ])
           .where('order.id = :orderId', { orderId: newOrder.id })
           .getOne();
-
+        },
+      );
+    
+      // Asegúrate de que la transacción se haya completado antes de emitir el evento
+      if (updatedOrderId) {
         this.appGateway.emitOrderStatusUpdated(completeOrder);
-        return completeOrder;
-      },
-    );
-  }
+      }
+    
+      return completeOrder;
+    }
   
   async updateOrderItemStatus(newOrderItem: OrderItem): Promise<OrderItem> {
+    let updatedOrderItemId: number;
+    let orderId: number;
 
-    console.log("hola");
-    return await this.orderItemRepository.manager.transaction(
+    const orderItem = await this.orderItemRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const orderItem = await transactionalEntityManager
           .createQueryBuilder(OrderItem, 'orderItem')
@@ -755,39 +804,46 @@ export class OrdersService {
         orderItem.status = newOrderItem.status;
   
         await transactionalEntityManager.save(orderItem);
+        updatedOrderItemId = orderItem.id;
+        orderId = orderItem.order.id;
   
-        // Recupera el objeto Order completo con todas las relaciones necesarias para emitOrderItemStatusUpdated
-        const completeOrder = await transactionalEntityManager
-          .createQueryBuilder(Order, 'order')
-          .leftJoinAndSelect('order.orderItems', 'orderItem')
-          .leftJoinAndSelect('orderItem.product', 'product')
-          .leftJoinAndSelect('product.subcategory', 'subcategory')
-          .leftJoinAndSelect('subcategory.category', 'category')
-          .select([
-            'order.id',
-            'order.status',
-            'order.orderType',
-            'orderItem.id',
-            'orderItem.status',
-            'product.id',
-            'product.name',
-            'subcategory.id',
-            'subcategory.name',
-            'category.id',
-            'category.name',
-          ])
-          .where('order.id = :orderId', { orderId: orderItem.order.id })
-          .getOne();
-  
-        // Llama a emitOrderItemStatusUpdated con el objeto Order completo y el ID del OrderItem actualizado
-        await this.appGateway.emitOrderItemStatusUpdated(
-          completeOrder,
-          orderItem.id,
-        );
         return orderItem;
       },
     );
+  
+  // Recupera el objeto Order completo con todas las relaciones necesarias para emitOrderItemStatusUpdated
+  const completeOrder = await this.orderRepository
+    .createQueryBuilder('order')
+    .leftJoinAndSelect('order.orderItems', 'orderItem')
+    .leftJoinAndSelect('orderItem.product', 'product')
+    .leftJoinAndSelect('product.subcategory', 'subcategory')
+    .leftJoinAndSelect('subcategory.category', 'category')
+    .select([
+      'order.id',
+      'order.status',
+      'order.orderType',
+      'orderItem.id',
+      'orderItem.status',
+      'product.id',
+      'product.name',
+      'subcategory.id',
+      'subcategory.name',
+      'category.id',
+      'category.name',
+    ])
+    .where('order.id = :orderId', { orderId })
+    .getOne();
+
+  // Asegúrate de que la transacción se haya completado antes de emitir el evento
+  if (updatedOrderItemId && completeOrder) {
+    await this.appGateway.emitOrderItemStatusUpdated(
+      completeOrder,
+      updatedOrderItemId,
+    );
   }
+
+  return orderItem;
+}
   async findOrderItemsWithCounts(
     subcategories?: string[],
     ordersLimit?: number,

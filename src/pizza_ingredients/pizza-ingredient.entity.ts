@@ -12,6 +12,12 @@ export class PizzaIngredient {
 
     @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
     price: number;
+    
+
+    @Column({
+        type: "int",
+    })
+    ingredientValue: number;
 
     @ManyToOne(() => Product, product => product.pizzaIngredients)
     product: Product;
