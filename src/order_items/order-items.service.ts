@@ -133,6 +133,7 @@ export class OrderItemsService {
             entityManager.create(SelectedPizzaIngredient, {
               orderItem: savedOrderItem,
               pizzaIngredient: pizzaIngredient,
+              half: ingredientDto.half,
             });
           await entityManager.save(selectedPizzaIngredient);
         }

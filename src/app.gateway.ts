@@ -358,6 +358,7 @@ export class AppGateway {
         'selectedPizzaIngredients.half',
         'pizzaIngredient.id',
         'pizzaIngredient.name',
+        'pizzaIngredient.ingredientValue',
       ])
       .getMany();
       
@@ -449,6 +450,8 @@ export class AppGateway {
         'selectedPizzaIngredients.half',
         'pizzaIngredient.id',
         'pizzaIngredient.name',
+        'pizzaIngredient.ingredientValue',
+
       ])
       .getOne();
   }
