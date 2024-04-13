@@ -33,6 +33,10 @@ export class OrdersController {
   getClosedOrders() {
     return this.ordersService.getClosedOrders();
   }
+  @Get('/delivery')
+  getDeliveryOrders(): Promise<Order[]> {
+    return this.ordersService.getDeliveryOrders();
+  }
 
   @Get('/synchronize')
   async synchronizeData() {
@@ -89,6 +93,11 @@ export class OrdersController {
   @Patch('/:id/complete')
   async completeOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.completeOrder(id);
+  }
+
+  @Patch('/delivery/mark-in-delivery')
+  markOrdersAsInDelivery(@Body() orders: Order[]): Promise<void> {
+    return this.ordersService.markOrdersAsInDelivery(orders);
   }
 
   @Patch('/:id')

@@ -16,6 +16,7 @@ import { ProductVariant } from 'src/product_variants/product-variant.entity';
 import { Product } from 'src/products/product.entity';
 import { PizzaHalf } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
 import { isReadable } from 'stream';
+import { OrderItemStatus } from '../order-item.entity';
 
 export class SelectedModifierDto {
   @IsOptional()
@@ -49,6 +50,10 @@ export class CreateOrderItemDto {
 
   @IsOptional()
   order: Order;
+
+  @IsOptional()
+  status: OrderItemStatus
+
 
   @IsOptional()
   productVariant?: ProductVariant;
