@@ -1,7 +1,8 @@
 import { IsEnum } from 'class-validator';
-import { Status } from '../table.entity';
+import { TableStatus } from '../table.entity';
 
 export class UpdateTableStatusDto {
-    @IsEnum(Status)
-    status: Status;
+    @IsEnum(TableStatus)
+    status: TableStatus;
 }
+

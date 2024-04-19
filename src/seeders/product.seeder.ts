@@ -237,7 +237,7 @@ export const seedProducts = async (dataSource: DataSource) => {
             { name: 'BBQ', price: 135 },
             { name: 'Picosas', price: 135 },
             { name: 'Fritas', price: 135 },
-            { name: 'Mixtas', price: 135 },
+            { name: 'Alas Mixtas', price: 135 },
             { name: '1/2 BBQ', price: 70 },
             { name: '1/2 Picositas', price: 70 },
             { name: '1/2 Fritas', price: 70 },
@@ -248,7 +248,7 @@ export const seedProducts = async (dataSource: DataSource) => {
           variants: [
             { name: 'P. Francesa', price: 90 },
             { name: 'P. Gajo', price: 100 },
-            { name: 'P. Mixtas', price: 100 },
+            { name: 'Papas. Mixtas', price: 100 },
             { name: '1/2 Francesa', price: 55 },
             { name: '1/2 Gajo', price: 60 },
           ],

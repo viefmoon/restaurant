@@ -57,6 +57,9 @@ export class Order {
     @CreateDateColumn()
     creationDate: Date;
 
+    @CreateDateColumn({ nullable: true })
+    completionDate: Date;
+
     @Column({ type: 'timestamp', nullable: true })
     scheduledDeliveryTime: Date;
 

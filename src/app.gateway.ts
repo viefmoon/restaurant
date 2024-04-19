@@ -159,36 +159,46 @@ export class AppGateway {
 
   async emitPendingOrderItemsToScreens(): Promise<void> {
     const pendingOrders = await this.getPendingOrders();
-
+  
+    let allDataForPizzaScreen = [];
+    let allDataForBurgerScreen = [];
+    let allDataForBarScreen = [];
+  
     pendingOrders.forEach((order) => {
-      const orderWithoutItems = {
-        ...order,
-        orderItems: undefined,
-      };
-      const { itemsForPizzaScreen, itemsForBurgerScreen, itemsForBarScreen } =
-        this.getOrderItemsByScreen(order);
-
+      const orderWithoutItems = { ...order, orderItems: undefined };
+      const { itemsForPizzaScreen, itemsForBurgerScreen, itemsForBarScreen } = this.getOrderItemsByScreen(order);
+  
       if (itemsForPizzaScreen.length > 0) {
-        this.server.to('pizzaScreen').emit('pendingOrderItems', {
-          messageType: 'pendingOrderItems',
+        allDataForPizzaScreen.push({
           order: orderWithoutItems,
-          orderItems: itemsForPizzaScreen,
+          orderItems: itemsForPizzaScreen
         });
       }
       if (itemsForBurgerScreen.length > 0) {
-        this.server.to('burgerScreen').emit('pendingOrderItems', {
-          messageType: 'pendingOrderItems',
+        allDataForBurgerScreen.push({
           order: orderWithoutItems,
-          orderItems: itemsForBurgerScreen,
+          orderItems: itemsForBurgerScreen
         });
       }
       if (itemsForBarScreen.length > 0) {
-        this.server.to('barScreen').emit('pendingOrderItems', {
-          messageType: 'pendingOrderItems',
+        allDataForBarScreen.push({
           order: orderWithoutItems,
-          orderItems: itemsForBarScreen,
+          orderItems: itemsForBarScreen
         });
       }
+    });
+  
+    this.server.to('pizzaScreen').emit('synchronizationEvent', {
+      messageType: 'synchronizationEvent',
+      data: allDataForPizzaScreen,
+    });
+    this.server.to('burgerScreen').emit('synchronizationEvent', {
+      messageType: 'synchronizationEvent',
+      data: allDataForBurgerScreen,
+    });
+    this.server.to('barScreen').emit('synchronizationEvent', {
+      messageType: 'synchronizationEvent',
+      data: allDataForBarScreen,
     });
   }
 
@@ -274,7 +284,7 @@ export class AppGateway {
     return await this.orderRepository
       .createQueryBuilder('order')
       .where('order.status IN (:...statuses)', {
-        statuses: [OrderStatus.created, OrderStatus.in_preparation],
+        statuses: [OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared],
       })
       .leftJoinAndSelect('order.area', 'area')
       .leftJoinAndSelect('order.table', 'table')

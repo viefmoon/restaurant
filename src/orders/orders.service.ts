@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, EntityManager } from 'typeorm';
+import { Repository, In, EntityManager, DataSource } from 'typeorm';
 import { Order, OrderPreparationStatus, OrderStatus, OrderType } from './order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemsService } from 'src/order_items/order-items.service';
@@ -13,6 +13,11 @@ import { OrderUpdate } from 'src/order_updates/order-update.entity';
 import { OrderItemUpdate } from 'src/order_item_updates/order-item-update.entity';
 import { OrderAdjustment } from 'src/order_adjustment/order-adjustment.entity';
 import { OrderCounter } from 'src/order_counters/order-counter.entity';
+import { Connection } from 'mysql2/typings/mysql/lib/Connection';
+import { seedRoles } from 'src/seeders/role.seeder';
+import { seedUsers } from 'src/seeders/user.seeder';
+import { seedTables } from 'src/seeders/table.seeder';
+import { seedProducts } from 'src/seeders/product.seeder';
 
 @Injectable()
 export class OrdersService {
@@ -35,6 +40,8 @@ export class OrdersService {
     private readonly orderCounterRepository: Repository<OrderCounter>,
     private readonly orderItemService: OrderItemsService,
     private readonly appGateway: AppGateway,
+    private readonly dataSource: DataSource,
+
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -64,6 +71,19 @@ export class OrdersService {
             product: productDetail,
           };
         });
+
+        // Paso 3: Manejar la creación de la mesa si es necesario
+        let tableEntity = createOrderDto.table;
+        if (createOrderDto.table && !createOrderDto.table.id) {
+          // Crear una nueva mesa si no se proporciona un ID
+          tableEntity = transactionalEntityManager.create(Table, {
+            number: createOrderDto.table.number,
+            temporaryIdentifier: createOrderDto.table.temporaryIdentifier,
+            status: createOrderDto.table.status,
+            area: createOrderDto.area,  // Asegúrate de que el área también se maneje correctamente
+          });
+          await transactionalEntityManager.save(tableEntity);
+        }
 
 
         // Inicializa los estados de preparación
@@ -109,7 +129,7 @@ export class OrdersService {
           phoneNumber: createOrderDto.phoneNumber,
           customerName: createOrderDto.customerName,
           area: createOrderDto.area,
-          table: createOrderDto.table,
+          table: tableEntity,
           orderItems: [],
           orderNumber: await this.getNextOrderNumber(new Date()), 
 
@@ -171,9 +191,37 @@ export class OrdersService {
             'orderItems.product',
             'orderItems.product.subcategory',
             'orderItems.product.subcategory.category',
+            'table',
+            'area',
           ],
         });
 
+        let tableEntity = order.table;
+        if (updateOrderDto.table) {
+          if (!updateOrderDto.table.id) {
+            // Crear una nueva mesa si no se proporciona un ID
+            tableEntity = transactionalEntityManager.create(Table, {
+              number: updateOrderDto.table.number,
+              temporaryIdentifier: updateOrderDto.table.temporaryIdentifier,
+              status: updateOrderDto.table.status,
+              area: updateOrderDto.area, // Asegúrate de que el área también se maneje correctamente
+            });
+            await transactionalEntityManager.save(tableEntity);
+          } else {
+            // Si se proporciona un ID, buscar y actualizar la mesa existente
+            tableEntity = await transactionalEntityManager.findOne(Table, { where: { id: updateOrderDto.table.id } });
+            if (tableEntity) {
+              tableEntity.number = updateOrderDto.table.number || tableEntity.number;
+              tableEntity.temporaryIdentifier = updateOrderDto.table.temporaryIdentifier || tableEntity.temporaryIdentifier;
+              tableEntity.status = updateOrderDto.table.status || tableEntity.status;
+              // Actualizar el área si es necesario
+              if (updateOrderDto.area) {
+                tableEntity.area = updateOrderDto.area;
+              }
+              await transactionalEntityManager.save(tableEntity);
+            }
+          }
+        }
         const lastUpdate = await transactionalEntityManager.findOne(
           OrderUpdate,
           {
@@ -186,7 +234,7 @@ export class OrdersService {
         orderUpdate.order = order;
         orderUpdate.updatedBy = updatedBy;
         orderUpdate.updateNumber = lastUpdate ? lastUpdate.updateNumber + 1 : 1;
-        await transactionalEntityManager.save(orderUpdate);
+        const savedOrderUpdate = await transactionalEntityManager.save(orderUpdate);
 
         const existingItemIds = order.orderItems.map((item) => item.id);
 
@@ -304,6 +352,14 @@ export class OrdersService {
           .filter((id) => !newItemIds.includes(id));
   
         if (itemsToDelete.length > 0) {
+
+          await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from('selected_pizza_ingredients')
+          .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
+          .execute();
+      
           await transactionalEntityManager
             .createQueryBuilder()
             .delete()
@@ -362,6 +418,7 @@ export class OrdersService {
           ],
         });
 
+
         // Actualiza los campos de la orden
         updatedOrder.orderType = updateOrderDto.orderType;
         updatedOrder.scheduledDeliveryTime =
@@ -371,8 +428,8 @@ export class OrdersService {
         updatedOrder.phoneNumber = updateOrderDto.phoneNumber;
         updatedOrder.deliveryAddress = updateOrderDto.deliveryAddress;
         updatedOrder.customerName = updateOrderDto.customerName;
-        order.area = updateOrderDto.area;
-        updatedOrder.table = updateOrderDto.table;
+        updatedOrder.area = updateOrderDto.area;
+        updatedOrder.table = tableEntity;
 
         const previousOrderStatus = order.status;
         const previousBarPreparationStatus = order.barPreparationStatus;
@@ -517,6 +574,7 @@ export class OrdersService {
         'order.id',
         'order.orderNumber',
         'order.creationDate',
+        'order.completionDate',
         'order.orderType',
         'order.status',
         'order.amountPaid',
@@ -582,7 +640,7 @@ export class OrdersService {
       .leftJoinAndSelect('order.area', 'area')
       .addSelect(['area.id', 'area.name'])
       .leftJoinAndSelect('order.table', 'table')
-      .addSelect(['table.id', 'table.number', 'table.status'])
+      .addSelect(['table.id', 'table.number', 'table.temporaryIdentifier', 'table.status'])
       .leftJoinAndSelect('order.orderItems', 'orderItem')
       .addSelect(['orderItem.id', 'orderItem.status', 'orderItem.price', 'orderItem.comments'])
       .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
@@ -903,79 +961,80 @@ export class OrdersService {
 
   return orderItem;
 }
-  async findOrderItemsWithCounts(
-    subcategories?: string[],
-    ordersLimit?: number,
-  ): Promise<any[]> {
-    let recentOrderIds: number[] = [];
-    if (ordersLimit) {
-      const recentOrders = await this.orderRepository
-        .createQueryBuilder('order')
-        .where('order.status IN (:...orderStatuses)', {
-          orderStatuses: ['created', 'in_preparation'],
-        })
-        .orderBy('order.creationDate', 'DESC')
-        .limit(ordersLimit)
-        .getMany();
-
-      recentOrderIds = recentOrders.map((order) => order.id);
-    }
-
-    const queryBuilder = this.orderItemRepository
-      .createQueryBuilder('orderItem')
-      .leftJoinAndSelect('orderItem.order', 'order')
-      .leftJoinAndSelect('orderItem.product', 'product')
-      .leftJoinAndSelect('product.subcategory', 'subcategory')
-      .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
-      .where('orderItem.status IN (:...statuses)', {
-        statuses: ['created', 'in_preparation'],
-      })
-      .andWhere('order.status IN (:...orderStatuses)', {
+async findOrderItemsWithCounts(
+  subcategories?: string[],
+  ordersLimit?: number,
+): Promise<any[]> {
+  let recentOrderIds: number[] = [];
+  if (ordersLimit) {
+    const recentOrders = await this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.status IN (:...orderStatuses)', {
         orderStatuses: ['created', 'in_preparation'],
-      });
+      })
+      .orderBy('order.creationDate', 'DESC')
+      .limit(ordersLimit)
+      .getMany();
 
-    if (subcategories && subcategories.length > 0) {
-      queryBuilder.andWhere('subcategory.name IN (:...subcategories)', {
-        subcategories,
-      });
-    }
-
-    if (ordersLimit) {
-      queryBuilder.andWhere('order.id IN (:...recentOrderIds)', {
-        recentOrderIds,
-      });
-    }
-
-    const orderItems = await queryBuilder.getMany();
-
-    const groupedBySubcategory = orderItems.reduce((acc, item) => {
-      const subcategoryName = item.product.subcategory.name;
-      if (!acc[subcategoryName]) {
-        acc[subcategoryName] = [];
-      }
-      const productOrVariantName = item.productVariant
-        ? `${item.product.name} - ${item.productVariant.name}`
-        : item.product.name;
-      const existingProductOrVariant = acc[subcategoryName].find(
-        (p) => p.name === productOrVariantName,
-      );
-      if (existingProductOrVariant) {
-        existingProductOrVariant.count += 1;
-      } else {
-        acc[subcategoryName].push({ name: productOrVariantName, count: 1 });
-      }
-      return acc;
-    }, {});
-
-    const result = Object.entries(groupedBySubcategory).map(
-      ([subcategoryName, products]) => ({
-        subcategoryName,
-        products,
-      }),
-    );
-
-    return result;
+    recentOrderIds = recentOrders.map((order) => order.id);
   }
+
+  const queryBuilder = this.orderItemRepository
+    .createQueryBuilder('orderItem')
+    .leftJoinAndSelect('orderItem.order', 'order')
+    .leftJoinAndSelect('orderItem.product', 'product')
+    .leftJoinAndSelect('product.subcategory', 'subcategory')
+    .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
+    .where('orderItem.status IN (:...statuses)', {
+      statuses: ['created', 'in_preparation'],
+    })
+    .andWhere('order.status IN (:...orderStatuses)', {
+      orderStatuses: ['created', 'in_preparation'],
+    });
+
+  if (subcategories && subcategories.length > 0) {
+    queryBuilder.andWhere('subcategory.name IN (:...subcategories)', {
+      subcategories,
+    });
+  }
+
+  if (ordersLimit) {
+    queryBuilder.andWhere('order.id IN (:...recentOrderIds)', {
+      recentOrderIds,
+    });
+  }
+
+  const orderItems = await queryBuilder.getMany();
+
+  const groupedBySubcategory = orderItems.reduce((acc, item) => {
+    const subcategoryName = item.product.subcategory.name;
+    if (!acc[subcategoryName]) {
+      acc[subcategoryName] = [];
+    }
+    // Modificado para usar solo el nombre de la variante si está disponible
+    const productOrVariantName = item.productVariant
+      ? item.productVariant.name
+      : item.product.name;
+    const existingProductOrVariant = acc[subcategoryName].find(
+      (p) => p.name === productOrVariantName,
+    );
+    if (existingProductOrVariant) {
+      existingProductOrVariant.count += 1;
+    } else {
+      acc[subcategoryName].push({ name: productOrVariantName, count: 1 });
+    }
+    return acc;
+  }, {});
+
+  const result = Object.entries(groupedBySubcategory).map(
+    ([subcategoryName, products]) => ({
+      subcategoryName,
+      products,
+    }),
+  );
+
+  return result;
+}
 
   async registerPayment(orderId: number, amount: number): Promise<Order> {
     return await this.orderRepository.manager.transaction(
@@ -1000,11 +1059,12 @@ export class OrdersService {
           throw new Error('Order is not in a state that can be completed');
         }
         order.status = OrderStatus.finished;
+        order.completionDate = new Date(); // Establece la fecha de finalización al momento actual
         await transactionalEntityManager.save(order);
         return order;
       },
     );
-  }
+}
 
   async cancelOrder(orderId: number): Promise<Order> {
     return await this.orderRepository.manager.transaction(
@@ -1016,6 +1076,7 @@ export class OrdersService {
           throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
         }
         order.status = OrderStatus.canceled;
+        order.completionDate = new Date(); // Establece la fecha de finalización al momento actual
         await transactionalEntityManager.save(order);
         return order;
       },
@@ -1073,4 +1134,30 @@ export class OrdersService {
       },
     );
   }
+
+  async resetDatabase(): Promise<void> {
+    try {
+      // Cierra la conexión actual para evitar conflictos durante el reinicio
+      await this.dataSource.destroy();
+
+      // Reestablece la base de datos
+      await this.dataSource.initialize();
+      await this.dataSource.dropDatabase();
+      await this.dataSource.synchronize(true); // El 'true' es para correr los seeders si tienes configurado así
+
+      // Ejecuta los seeders directamente
+      await seedRoles(this.dataSource);
+      await seedUsers(this.dataSource);
+      await seedTables(this.dataSource);
+      await seedProducts(this.dataSource);
+
+      console.log('Seeders ejecutados correctamente.');
+
+      // Opcional: Reiniciar el servidor, esto depende de tu entorno específico
+      // Esto podría implicar llamar a un script externo o usar un módulo de Node.js para reiniciar el proceso
+    } catch (error) {
+      throw new Error('Error al resetear la base de datos y ejecutar seeders: ' + error.message);
+    }
+  }
+  
 }

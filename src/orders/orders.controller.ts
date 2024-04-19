@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -107,6 +110,14 @@ export class OrdersController {
     @Query('userName') userName: string, // Extrae el nombre del usuario de la URL
   ) {
     return this.ordersService.updateOrder(id, updateOrderDto, userName);
+  }
+
+  @Delete('/reset-database')
+  @HttpCode(HttpStatus.OK)
+  async resetDatabase() {
+    // Asegúrate de implementar medidas de seguridad aquí
+    await this.ordersService.resetDatabase();
+    return { message: 'La base de datos ha sido reseteada y el servidor se está reiniciando.' };
   }
 
 }
