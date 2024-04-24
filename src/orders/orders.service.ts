@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, EntityManager } from 'typeorm';
-import { Order, OrderPreparationStatus, OrderStatus } from './order.entity';
+import { Order, OrderPreparationStatus, OrderStatus, OrderType } from './order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemsService } from 'src/order_items/order-items.service';
 import { Table } from 'src/tables/table.entity';
@@ -13,6 +13,7 @@ import { OrderUpdate } from 'src/order_updates/order-update.entity';
 import { OrderItemUpdate } from 'src/order_item_updates/order-item-update.entity';
 import { OrderAdjustment } from 'src/order_adjustment/order-adjustment.entity';
 import { OrderCounter } from 'src/order_counters/order-counter.entity';
+import { OrderPrint } from 'src/order_prints/order-print.entity';
 
 @Injectable()
 export class OrdersService {
@@ -874,6 +875,10 @@ export class OrdersService {
         if (order.status !== OrderStatus.prepared) {
           throw new Error('Order is not in a state that can be completed');
         }
+        // Verificar si el monto pagado es menor que el costo total
+        if (order.amountPaid < order.totalCost) {
+          order.amountPaid = order.totalCost;
+        }
         order.status = OrderStatus.finished;
         await transactionalEntityManager.save(order);
         return order;
@@ -919,4 +924,160 @@ export class OrdersService {
       },
     );
   }
+
+  async getDeliveryPreparedOrders(): Promise<{ id: number; orderType: string; totalCost: number }[]> {
+    const orders = await this.orderRepository.find({
+      where: {
+        status: OrderStatus.prepared,
+        orderType: OrderType.delivery,
+      },
+      select: ['id', 'orderType', 'totalCost'],
+    });
+  
+    return orders.map(({ id, orderType, totalCost }) => ({
+      id,
+      orderType,
+      totalCost,
+    }));
+  }
+
+  async markOrderAsInDelivery(orderId: number): Promise<Order> {
+    return await this.orderRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const order = await transactionalEntityManager.findOne(Order, {
+          where: { id: orderId, status: OrderStatus.prepared, orderType: OrderType.delivery },
+        });
+  
+        if (!order) {
+          throw new HttpException('Order not found or not in prepared state or not a delivery order', HttpStatus.NOT_FOUND);
+        }
+  
+        order.status = OrderStatus.in_delivery;
+        await transactionalEntityManager.save(order);
+  
+        return order;
+      }
+    );
+  }
+
+  async registerPrint(orderId: number, printedBy: string): Promise<OrderPrint> {
+    return await this.orderRepository.manager.transaction(async transactionalEntityManager => {
+      const order = await transactionalEntityManager.findOne(Order, { where: { id: orderId } });
+      if (!order) {
+        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+      }
+  
+      const orderPrint = new OrderPrint();
+      orderPrint.order = order;
+      orderPrint.printedBy = printedBy;
+      orderPrint.printTime = new Date(); // Captura el momento exacto de la impresión
+  
+      await transactionalEntityManager.save(orderPrint);
+      return orderPrint;
+    });
+  }
+
+async getOrdersWithPrints(): Promise<Order[]> {
+  return await this.orderRepository.find({
+    where: {
+      status: In([OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared]),
+      orderType: OrderType.dineIn, // Asegúrate de que la orden sea dineIn
+    },
+    relations: ['orderPrints'], // Asegúrate de cargar la relación con orderPrints
+    order: {
+      creationDate: 'DESC' // Ordena por fecha de creación, si es necesario
+    }
+  });
+}
+
+async getSalesReport(): Promise<{ totalSales: number; totalAmountPaid: number; subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] }> {
+  const finishedOrders = await this.orderRepository.find({
+    where: {
+      status: OrderStatus.finished,
+    },
+    relations: [
+      'orderItems',
+      'orderItems.product',
+      'orderItems.product.subcategory',
+      'orderItems.productVariant',
+    ],
+  });
+
+  let totalSales = 0;
+  let totalAmountPaid = 0;
+
+  const subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] = [];
+
+  for (const order of finishedOrders) {
+    totalAmountPaid += order.amountPaid;
+
+    for (const orderItem of order.orderItems) {
+      const productName = orderItem.productVariant
+        ? `${orderItem.product.name} - ${orderItem.productVariant.name}`
+        : orderItem.product.name;
+      const subcategoryName = orderItem.product.subcategory.name;
+
+      const subcategoryIndex = subcategories.findIndex(
+        (item) => item.subcategoryName === subcategoryName
+      );
+      if (subcategoryIndex === -1) {
+        subcategories.push({
+          subcategoryName,
+          totalSales: orderItem.price,
+          products: [
+            {
+              name: productName,
+              quantity: 1,
+              totalSales: orderItem.price,
+            },
+          ],
+        });
+      } else {
+        const productIndex = subcategories[subcategoryIndex].products.findIndex(
+          (product) => product.name === productName
+        );
+        if (productIndex === -1) {
+          subcategories[subcategoryIndex].products.push({
+            name: productName,
+            quantity: 1,
+            totalSales: orderItem.price,
+          });
+          subcategories[subcategoryIndex].totalSales += orderItem.price;
+        } else {
+          subcategories[subcategoryIndex].products[productIndex].quantity += 1;
+          subcategories[subcategoryIndex].products[productIndex].totalSales +=
+            orderItem.price;
+          subcategories[subcategoryIndex].totalSales += orderItem.price;
+        }
+      }
+
+      totalSales += orderItem.price;
+    }
+  }
+
+  return {
+    totalSales,
+    totalAmountPaid,
+    subcategories,
+  };
+}
+
+async revertDeliveryOrderToPrepared(orderId: number): Promise<Order> {
+  return await this.orderRepository.manager.transaction(
+    async (transactionalEntityManager) => {
+      const order = await transactionalEntityManager.findOne(Order, {
+        where: { id: orderId, status: OrderStatus.in_delivery },
+      });
+
+      if (!order) {
+        throw new HttpException('Order not found or not in delivery state', HttpStatus.NOT_FOUND);
+      }
+
+      order.status = OrderStatus.prepared;
+      await transactionalEntityManager.save(order);
+
+      return order;
+    }
+  );
+}
 }

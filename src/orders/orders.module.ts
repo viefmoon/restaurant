@@ -22,9 +22,10 @@ import { OrderUpdate } from 'src/order_updates/order-update.entity';
 import { OrderItemUpdate } from 'src/order_item_updates/order-item-update.entity';
 import { OrderAdjustment } from 'src/order_adjustment/order-adjustment.entity';
 import { OrderCounter } from 'src/order_counters/order-counter.entity';
+import { OrderPrint } from 'src/order_prints/order-print.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, Table, Area, OrderItem, Product, ProductVariant, ProductObservation, SelectedProductObservation, Modifier, SelectedModifier, PizzaFlavor, SelectedPizzaFlavor, PizzaIngredient, SelectedPizzaIngredient, OrderUpdate, OrderItemUpdate, OrderAdjustment, OrderCounter])], 
+  imports: [TypeOrmModule.forFeature([Order, Table, Area, OrderItem, Product, ProductVariant, ProductObservation, SelectedProductObservation, Modifier, SelectedModifier, PizzaFlavor, SelectedPizzaFlavor, PizzaIngredient, SelectedPizzaIngredient, OrderUpdate, OrderItemUpdate, OrderAdjustment, OrderCounter, OrderPrint])], 
   providers: [OrdersService, OrderItemsService, AppGateway], 
   controllers: [OrdersController], 
   exports: [TypeOrmModule]

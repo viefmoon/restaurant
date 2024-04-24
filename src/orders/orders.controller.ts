@@ -14,6 +14,7 @@ import { Order, OrderStatus } from './order.entity';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderItem } from 'src/order_items/order-item.entity';
 import { AppGateway } from 'src/app.gateway';
+import { PrintOrderDto } from 'src/order_prints/dto/print-order.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -29,6 +30,22 @@ export class OrdersController {
   getOpenOrders() {
     return this.ordersService.getOpenOrders();
   }
+
+  @Get('/with-prints')
+  async getOrdersWithPrints() {
+    return this.ordersService.getOrdersWithPrints();
+  }
+
+  @Get('/delivery-prepared')
+  async getDeliveryPreparedOrders(): Promise<{ id: number; orderType: string; totalCost: number }[]> {
+    return this.ordersService.getDeliveryPreparedOrders();
+  }
+  
+  @Get('/sales-report')
+  async getSalesReport(): Promise<{ totalSales: number; totalAmountPaid: number; subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] }> {
+    return this.ordersService.getSalesReport();
+  }
+
   @Get('/closed')
   getClosedOrders() {
     return this.ordersService.getClosedOrders();
@@ -89,6 +106,24 @@ export class OrdersController {
   @Patch('/:id/complete')
   async completeOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.completeOrder(id);
+  }
+
+  @Patch('/:id/delivery')
+  async markOrderAsInDelivery(@Param('id', ParseIntPipe) id: number): Promise<Order> {
+    return this.ordersService.markOrderAsInDelivery(id);
+  }
+
+  @Patch('/:id/print')
+  async registerTicketPrint(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Body() printOrderDto: PrintOrderDto
+  ) {
+    return this.ordersService.registerPrint(orderId, printOrderDto.printedBy);
+  }
+
+  @Patch('/:id/revert-prepared')
+  async revertOrderToPrepared(@Param('id', ParseIntPipe) id: number): Promise<Order> {
+    return this.ordersService.revertDeliveryOrderToPrepared(id);
   }
 
   @Patch('/:id')

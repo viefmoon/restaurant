@@ -4,6 +4,7 @@ import { OrderUpdate } from '../order_updates/order-update.entity';
 import { Table } from '../tables/table.entity';
 import { Area } from 'src/areas/area.entity';
 import { OrderAdjustment } from 'src/order_adjustment/order-adjustment.entity';
+import { OrderPrint } from 'src/order_prints/order-print.entity';
 export enum OrderType {
     dineIn = "dineIn",
     delivery = "delivery",
@@ -14,6 +15,7 @@ export enum OrderStatus {
     created = "created",
     in_preparation = "in_preparation",
     prepared = "prepared",
+    in_delivery = 'in_delivery',
     finished = "finished",
     canceled = "canceled"
 }
@@ -95,6 +97,12 @@ export class Order {
     })
     pizzaPreparationStatus: OrderPreparationStatus;
 
+    @Column({
+        type: "boolean",
+        default: false
+    })
+    isTicketPrinted: boolean;
+
     @ManyToOne(() => Area, area => area.orders, { nullable: true })
     area: Area;
 
@@ -109,4 +117,10 @@ export class Order {
 
     @OneToMany(() => OrderUpdate, orderUpdate => orderUpdate.order, { nullable: true })
     orderUpdates: OrderUpdate[];
+
+    @OneToMany(
+        () => OrderPrint,
+        (orderPrint) => orderPrint.order,
+        { nullable: true },)
+    orderPrints: OrderPrint[];
 }
