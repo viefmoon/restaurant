@@ -14,7 +14,7 @@ import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
-import { AppGateway } from '../app.gateway'; // Import AppGateway
+import { AppGateway } from '../app.gateway';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 
 @Injectable()
@@ -232,7 +232,6 @@ export class OrderItemsService {
       orderItem: { id: orderItemId },
     });
     if (updateOrderItemDto.selectedPizzaFlavors?.length) {
-      console.log('updateOrderItemDto.selectedPizzaFlavors', updateOrderItemDto.selectedPizzaFlavors);
       for (const flavorDto of updateOrderItemDto.selectedPizzaFlavors) {
         const pizzaFlavor = await entityManager.findOne(PizzaFlavor, {
           where: { id: flavorDto.pizzaFlavor.id },
@@ -243,7 +242,6 @@ export class OrderItemsService {
             pizzaFlavor: pizzaFlavor,
           });
           const savedSelectedPizzaFlavor = await entityManager.save(selectedPizzaFlavor);
-          console.log('selectedPizzaFlavor guardado:', savedSelectedPizzaFlavor);
         }
       }
     }

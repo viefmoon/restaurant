@@ -9,6 +9,8 @@ import { Server, Socket } from 'socket.io';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './orders/order.entity';
 import { Repository } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
+
 
 @WebSocketGateway()
 export class AppGateway {
@@ -42,6 +44,11 @@ export class AppGateway {
     }
 
     this.emitPendingOrderItemsToScreens();
+  }
+
+  @Cron(CronExpression.EVERY_30_SECONDS)
+  async handleCron() {
+    await this.emitPendingOrderItemsToScreens();
   }
 
   private getOrderItemsByScreen(order: Order) {
@@ -344,6 +351,7 @@ export class AppGateway {
         'area.name',
         'table.id',
         'table.number',
+        'table.temporaryIdentifier',
         'orderItem.id',
         'orderItem.status',
         'orderItem.comments',

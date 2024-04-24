@@ -13,11 +13,11 @@ import { OrderUpdate } from 'src/order_updates/order-update.entity';
 import { OrderItemUpdate } from 'src/order_item_updates/order-item-update.entity';
 import { OrderAdjustment } from 'src/order_adjustment/order-adjustment.entity';
 import { OrderCounter } from 'src/order_counters/order-counter.entity';
-import { Connection } from 'mysql2/typings/mysql/lib/Connection';
 import { seedRoles } from 'src/seeders/role.seeder';
 import { seedUsers } from 'src/seeders/user.seeder';
 import { seedTables } from 'src/seeders/table.seeder';
 import { seedProducts } from 'src/seeders/product.seeder';
+import { UpdateOrderItemDto } from 'src/order_items/dto/update-order-item.dto';
 
 @Injectable()
 export class OrdersService {
@@ -327,6 +327,7 @@ export class OrdersService {
               orderItemUpdate.orderItem = newItem;
               orderItemUpdate.orderUpdate = orderUpdate;
               orderItemUpdate.isNewOrderItem = true;
+              await transactionalEntityManager.save(orderItemUpdate);
 
               return newItem;
             }
@@ -497,6 +498,7 @@ export class OrdersService {
         'selectedProductObservations',
         'selectedPizzaFlavors',
         'selectedPizzaIngredients',
+        'selectedPizzaIngredients.pizzaIngredient',
         'product',
       ],
     });
@@ -504,9 +506,8 @@ export class OrdersService {
 
   private itemDtoHasSignificantChanges(
     existingItem: OrderItem,
-    itemDto: any,
-  ): boolean {
-    // Compara campos simples primero
+    itemDto: UpdateOrderItemDto,
+   ): boolean {
     if (
       existingItem.comments !== itemDto.comments ||
       existingItem.product.id !== itemDto.product.id ||
@@ -516,38 +517,36 @@ export class OrdersService {
     ) {
       return true;
     }
-
+  
     // Compara las relaciones que pueden tener arrays de IDs para simplificar
-    // Nota: Esto asume que itemDto y existingItem tienen las propiedades en el mismo formato
-    // Puede necesitar ajustes si, por ejemplo, itemDto tiene arrays de objetos en lugar de IDs
     const compareArrays = (arr1: any[], arr2: any[]): boolean => {
       if (arr1.length !== arr2.length) return true;
-      const set = new Set([...arr1, ...arr2]);
-      return set.size !== arr1.length; // Si el tamaño es diferente, hay elementos únicos
+      const ids1 = arr1.map(item => item.id).sort();
+      const ids2 = arr2.map(item => item.id).sort();
+      return !ids1.every((value, index) => value === ids2[index]);
     };
-
+  
     // Ejemplo de comparación de relaciones (modificadores seleccionados, observaciones, etc.)
     if (
       compareArrays(
-        existingItem.selectedModifiers.map((m) => m.id),
+        existingItem.selectedModifiers,
         itemDto.selectedModifiers,
       ) ||
       compareArrays(
-        existingItem.selectedProductObservations.map((o) => o.id),
+        existingItem.selectedProductObservations,
         itemDto.selectedProductObservations,
       ) ||
       compareArrays(
-        existingItem.selectedPizzaFlavors.map((f) => f.id),
+        existingItem.selectedPizzaFlavors,
         itemDto.selectedPizzaFlavors,
       ) ||
       compareArrays(
-        existingItem.selectedPizzaIngredients.map((i) => i.id),
+        existingItem.selectedPizzaIngredients,
         itemDto.selectedPizzaIngredients,
       )
     ) {
       return true;
     }
-
     return false; // No se encontraron cambios significativos
   }
 
@@ -702,6 +701,14 @@ export class OrdersService {
           .where('order.id = :orderId', { orderId: newOrder.id })
           .getOne();
 
+                // Verificar si el estado actual de la orden permite actualizaciones
+      if (order.status === OrderStatus.in_delivery || 
+        order.status === OrderStatus.finished || 
+        order.status === OrderStatus.canceled) {
+      throw new Error('No se permite actualizar el estado de preparación de una orden en estado ' + order.status);
+    }
+
+
         // Determina si la orden contiene ítems de pizza o entradas
         const containsPizzaorEntradasItems = order.orderItems.some(
           (item) =>
@@ -818,7 +825,8 @@ export class OrdersService {
           order.status = OrderStatus.created;
         } else if (
           // Si al menos uno de los estados de preparación está en 'in_preparation', entonces la orden está 'in_preparation'
-          preparationStatuses.includes(OrderPreparationStatus.in_preparation)
+          preparationStatuses.includes(OrderPreparationStatus.in_preparation) ||
+          (preparationStatuses.includes(OrderPreparationStatus.prepared) && preparationStatuses.includes(OrderPreparationStatus.created))
         ) {
           order.status = OrderStatus.in_preparation;
         } else if (
@@ -1050,7 +1058,7 @@ async findOrderItemsWithCounts(
   }
 
   async completeOrder(orderId: number): Promise<Order> {
-    return await this.orderRepository.manager.transaction(
+    const order = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const order = await transactionalEntityManager.findOne(Order, {
           where: { id: orderId },
@@ -1064,10 +1072,15 @@ async findOrderItemsWithCounts(
         return order;
       },
     );
-}
+
+    // Emitir a las pantallas después de actualizar el estado de la orden
+    await this.appGateway.emitPendingOrderItemsToScreens();
+    
+    return order;
+  }
 
   async cancelOrder(orderId: number): Promise<Order> {
-    return await this.orderRepository.manager.transaction(
+    const order = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const order = await transactionalEntityManager.findOne(Order, {
           where: { id: orderId },
@@ -1081,6 +1094,11 @@ async findOrderItemsWithCounts(
         return order;
       },
     );
+
+    // Emitir a las pantallas después de actualizar el estado de la orden
+    await this.appGateway.emitPendingOrderItemsToScreens();
+    
+    return order;
   }
 
   async getDeliveryOrders(): Promise<Order[]> {
@@ -1110,6 +1128,9 @@ async findOrderItemsWithCounts(
         }
       }
     });
+
+    // Emitir a las pantallas después de actualizar el estado de las ordenes
+    await this.appGateway.emitPendingOrderItemsToScreens();
   }
 
   private async getNextOrderNumber(date: Date): Promise<number> {
