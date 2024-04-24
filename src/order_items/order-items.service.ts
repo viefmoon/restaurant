@@ -14,7 +14,7 @@ import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
-import { AppGateway } from '../app.gateway'; // Import AppGateway
+import { AppGateway } from '../app.gateway';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 
 @Injectable()
@@ -133,6 +133,7 @@ export class OrderItemsService {
             entityManager.create(SelectedPizzaIngredient, {
               orderItem: savedOrderItem,
               pizzaIngredient: pizzaIngredient,
+              half: ingredientDto.half,
             });
           await entityManager.save(selectedPizzaIngredient);
         }
@@ -184,6 +185,8 @@ export class OrderItemsService {
       updateOrderItemDto.productVariant ?? orderItem.productVariant;
     orderItem.comments = updateOrderItemDto.comments ?? orderItem.comments;
     orderItem.price = updateOrderItemDto.price ?? orderItem.price;
+
+    await entityManager.save(orderItem);
 
     // Actualizar selectedModifiers
     await entityManager.delete(SelectedModifier, {
@@ -238,7 +241,7 @@ export class OrderItemsService {
             orderItem: orderItem,
             pizzaFlavor: pizzaFlavor,
           });
-          await entityManager.save(selectedPizzaFlavor);
+          const savedSelectedPizzaFlavor = await entityManager.save(selectedPizzaFlavor);
         }
       }
     }
@@ -263,8 +266,6 @@ export class OrderItemsService {
         }
       }
     }
-
-    await entityManager.save(orderItem);
 
     return entityManager.findOne(OrderItem, {
       where: { id: orderItemId },

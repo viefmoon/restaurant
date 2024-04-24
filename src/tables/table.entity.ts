@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from 'ty
 import { Order } from 'src/orders/order.entity';
 import { Area } from 'src/areas/area.entity';
 
-export enum Status {
+export enum TableStatus {
     AVAILABLE = 'Disponible',
     OCCUPIED = 'Ocupada'
 }
@@ -13,15 +13,18 @@ export class Table {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
+    @Column({ nullable: true }) 
     number: number;
+    
+    @Column({ nullable: true })
+    temporaryIdentifier: string;
 
     @Column({
         type: 'enum',
-        enum: Status,
-        default: Status.AVAILABLE
+        enum: TableStatus,
+        default: TableStatus.AVAILABLE
     })
-    status: Status;
+    status: TableStatus;
 
     @ManyToOne(() => Area, (area) => area.tables)
     area: Area;

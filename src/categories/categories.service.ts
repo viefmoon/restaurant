@@ -16,13 +16,6 @@ export class CategoriesService {
   async findAllWithSubcategoriesAndProducts(): Promise<Category[]> {
     const cacheKey = 'categories_with_details';
     try {
-      // Intentar recuperar de Redis
-      // const cached = await this.redisClient.get(cacheKey);
-      // if (cached) {
-      //   return JSON.parse(cached);
-      // }
-
-      // Si no está en caché, buscar en la base de datos
       const categories = await this.categoryRepository.find({
         relations: [
           'subcategories',
@@ -36,14 +29,21 @@ export class CategoriesService {
           'subcategories.products.pizzaIngredients',
         ],
       });
-      // Guardar el resultado en Redis antes de retornar
-      // await this.redisClient.set(
-      //   cacheKey,
-      //   JSON.stringify(categories),
-      //   'EX',
-      //   600,
-      // ); // Expira en 10 minutos
-
+  
+      // Ordenar pizzaFlavors y pizzaIngredients por ID de forma ascendente después de la carga
+      categories.forEach(category => {
+        category.subcategories.forEach(subcategory => {
+          subcategory.products.forEach(product => {
+            if (product.pizzaFlavors) {
+              product.pizzaFlavors.sort((a, b) => a.id - b.id);
+            }
+            if (product.pizzaIngredients) {
+              product.pizzaIngredients.sort((a, b) => a.id - b.id);
+            }
+          });
+        });
+      });
+  
       return categories;
     } catch (error) {
       throw new HttpException(

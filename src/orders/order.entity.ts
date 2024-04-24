@@ -15,7 +15,7 @@ export enum OrderStatus {
     created = "created",
     in_preparation = "in_preparation",
     prepared = "prepared",
-    in_delivery = 'in_delivery',
+    in_delivery = "in_delivery",
     finished = "finished",
     canceled = "canceled"
 }
@@ -57,6 +57,9 @@ export class Order {
 
     @CreateDateColumn()
     creationDate: Date;
+
+    @CreateDateColumn({ nullable: true })
+    completionDate: Date;
 
     @Column({ type: 'timestamp', nullable: true })
     scheduledDeliveryTime: Date;

@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -49,6 +52,10 @@ export class OrdersController {
   @Get('/closed')
   getClosedOrders() {
     return this.ordersService.getClosedOrders();
+  }
+  @Get('/delivery')
+  getDeliveryOrders(): Promise<Order[]> {
+    return this.ordersService.getDeliveryOrders();
   }
 
   @Get('/synchronize')
@@ -108,11 +115,6 @@ export class OrdersController {
     return this.ordersService.completeOrder(id);
   }
 
-  @Patch('/:id/delivery')
-  async markOrderAsInDelivery(@Param('id', ParseIntPipe) id: number): Promise<Order> {
-    return this.ordersService.markOrderAsInDelivery(id);
-  }
-
   @Patch('/:id/print')
   async registerTicketPrint(
     @Param('id', ParseIntPipe) orderId: number,
@@ -126,6 +128,11 @@ export class OrdersController {
     return this.ordersService.revertDeliveryOrderToPrepared(id);
   }
 
+  @Patch('/delivery/mark-in-delivery')
+  markOrdersAsInDelivery(@Body() orders: Order[]): Promise<void> {
+    return this.ordersService.markOrdersAsInDelivery(orders);
+  }
+
   @Patch('/:id')
   async updateOrder(
     @Param('id', ParseIntPipe) id: number,
@@ -133,6 +140,14 @@ export class OrdersController {
     @Query('userName') userName: string, // Extrae el nombre del usuario de la URL
   ) {
     return this.ordersService.updateOrder(id, updateOrderDto, userName);
+  }
+
+  @Delete('/reset-database')
+  @HttpCode(HttpStatus.OK)
+  async resetDatabase() {
+    // Asegúrate de implementar medidas de seguridad aquí
+    await this.ordersService.resetDatabase();
+    return { message: 'La base de datos ha sido reseteada y el servidor se está reiniciando.' };
   }
 
 }

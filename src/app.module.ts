@@ -11,6 +11,8 @@ import { TablesModule } from './tables/tables.module';
 import { CategoriesModule } from './categories/categories.module';
 import { OrdersModule } from './orders/orders.module';
 import { AppGateway } from './app.gateway';
+import { ScheduleModule } from '@nestjs/schedule';
+
 
 @Module({
   imports: [
@@ -38,6 +40,7 @@ import { AppGateway } from './app.gateway';
     TablesModule,
     CategoriesModule,
     OrdersModule,
+    ScheduleModule.forRoot(), 
   ],
   controllers: [AppController],
   providers: [AppService, AppGateway],
