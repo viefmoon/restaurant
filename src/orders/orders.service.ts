@@ -19,6 +19,7 @@ import { seedUsers } from 'src/seeders/user.seeder';
 import { seedTables } from 'src/seeders/table.seeder';
 import { seedProducts } from 'src/seeders/product.seeder';
 import { UpdateOrderItemDto } from 'src/order_items/dto/update-order-item.dto';
+import { Area } from 'src/areas/area.entity';
 
 @Injectable()
 export class OrdersService {
@@ -1084,6 +1085,38 @@ async findOrderItemsWithCounts(
     return order;
   }
 
+  async completeMultipleOrders(orderIds: number[]): Promise<Order[]> {
+    return await this.orderRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const orders = await transactionalEntityManager.find(Order, {
+          where: {
+            id: In(orderIds),
+          },
+        });
+  
+        const completedOrders: Order[] = [];
+        for (const order of orders) {
+          if (order.status !== OrderStatus.prepared && order.status !== OrderStatus.in_delivery) {
+            throw new Error(`Order with ID ${order.id} is not in a state that can be completed`);
+          }
+  
+          if (order.amountPaid < order.totalCost) {
+            order.amountPaid = order.totalCost;
+          }
+  
+          order.status = OrderStatus.finished;
+          order.completionDate = new Date();
+          await transactionalEntityManager.save(order);
+          completedOrders.push(order);
+        }
+  
+        // Emitir a las pantallas después de actualizar el estado de las órdenes
+        await this.appGateway.emitPendingOrderItemsToScreens();
+        return completedOrders;
+      },
+    );
+  }
+
   async cancelOrder(orderId: number): Promise<Order> {
     const order = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
@@ -1212,84 +1245,88 @@ async findOrderItemsWithCounts(
       return orderPrint;
     });
   }
+  async getOrdersWithPrints(): Promise<Order[]> {
+    const orders = await this.orderRepository
+      .createQueryBuilder('order')
+      .innerJoinAndSelect('order.orderPrints', 'orderPrint')
+      .leftJoinAndSelect('order.area', 'area')
+      .leftJoinAndSelect('order.table', 'table')
+      .where('order.status IN (:...statuses)', { 
+        statuses: [OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared]
+      })
+      .andWhere('order.orderType = :orderType', { orderType: OrderType.dineIn })
+      .orderBy('order.creationDate', 'DESC')
+      .getMany();
+  
+    return orders;
+  }
 
-async getOrdersWithPrints(): Promise<Order[]> {
-  return await this.orderRepository.find({
-    where: {
-      status: In([OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared]),
-      orderType: OrderType.dineIn, // Asegúrate de que la orden sea dineIn
-    },
-    relations: ['orderPrints'], // Asegúrate de cargar la relación con orderPrints
-    order: {
-      creationDate: 'DESC' // Ordena por fecha de creación, si es necesario
-    }
-  });
-}
-
-async getSalesReport(): Promise<{ totalSales: number; totalAmountPaid: number; subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] }> {
-  const finishedOrders = await this.orderRepository.find({
-    where: {
-      status: OrderStatus.finished,
-    },
-    relations: [
-      'orderItems',
-      'orderItems.product',
-      'orderItems.product.subcategory',
-      'orderItems.productVariant',
-    ],
-  });
-
-  let totalSales = 0;
-  let totalAmountPaid = 0;
-
-  const subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] = [];
-
-  for (const order of finishedOrders) {
-    totalAmountPaid += order.amountPaid;
-
-    for (const orderItem of order.orderItems) {
-      const productName = orderItem.productVariant
-        ? `${orderItem.product.name} - ${orderItem.productVariant.name}`
-        : orderItem.product.name;
-      const subcategoryName = orderItem.product.subcategory.name;
-
-      const subcategoryIndex = subcategories.findIndex(
-        (item) => item.subcategoryName === subcategoryName
-      );
-      if (subcategoryIndex === -1) {
-        subcategories.push({
-          subcategoryName,
-          totalSales: orderItem.price,
-          products: [
-            {
+  async getSalesReport(): Promise<{ totalSales: number; totalAmountPaid: number; subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] }> {
+    const finishedOrders = await this.orderRepository.find({
+      where: {
+        status: OrderStatus.finished,
+      },
+      relations: [
+        'orderItems',
+        'orderItems.product',
+        'orderItems.product.subcategory',
+        'orderItems.productVariant',
+      ],
+    });
+  
+    let totalSales = 0;
+    let totalAmountPaid = 0;
+  
+    const subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] = [];
+  
+    for (const order of finishedOrders) {
+      totalAmountPaid += parseFloat(order.amountPaid.toString())
+  
+  
+      for (const orderItem of order.orderItems) {
+        const productName = orderItem.productVariant
+          ? `${orderItem.product.name} - ${orderItem.productVariant.name}`
+          : orderItem.product.name;
+        const subcategoryName = orderItem.product.subcategory.name;
+        const itemPrice = parseFloat(orderItem.price.toString()); // Convertir a número
+  
+        const subcategoryIndex = subcategories.findIndex(
+          (item) => item.subcategoryName === subcategoryName
+        );
+        if (subcategoryIndex === -1) {
+          subcategories.push({
+            subcategoryName,
+            totalSales: itemPrice, // Usar el valor numérico
+            products: [
+              {
+                name: productName,
+                quantity: 1,
+                totalSales: itemPrice, // Usar el valor numérico
+              },
+            ],
+          });
+        } else {
+          const productIndex = subcategories[subcategoryIndex].products.findIndex(
+            (product) => product.name === productName
+          );
+          if (productIndex === -1) {
+            subcategories[subcategoryIndex].products.push({
               name: productName,
               quantity: 1,
-              totalSales: orderItem.price,
-            },
-          ],
-        });
-      } else {
-        const productIndex = subcategories[subcategoryIndex].products.findIndex(
-          (product) => product.name === productName
-        );
-        if (productIndex === -1) {
-          subcategories[subcategoryIndex].products.push({
-            name: productName,
-            quantity: 1,
-            totalSales: orderItem.price,
-          });
-          subcategories[subcategoryIndex].totalSales += orderItem.price;
-        } else {
-          subcategories[subcategoryIndex].products[productIndex].quantity += 1;
-          subcategories[subcategoryIndex].products[productIndex].totalSales +=
-            orderItem.price;
-          subcategories[subcategoryIndex].totalSales += orderItem.price;
+              totalSales: itemPrice, // Usar el valor numérico
+            });
+            subcategories[subcategoryIndex].totalSales += itemPrice; // Sumar el valor numérico
+          } else {
+            subcategories[subcategoryIndex].products[productIndex].quantity += 1;
+            subcategories[subcategoryIndex].products[productIndex].totalSales += itemPrice; // Sumar el valor numérico
+            subcategories[subcategoryIndex].totalSales += itemPrice; // Sumar el valor numérico
+          }
         }
+  
+        totalSales += itemPrice; // Sumar el valor numérico
       }
-
-      totalSales += orderItem.price;
     }
-  }
+
 
   return {
     totalSales,
@@ -1298,24 +1335,26 @@ async getSalesReport(): Promise<{ totalSales: number; totalAmountPaid: number; s
   };
 }
 
-async revertDeliveryOrderToPrepared(orderId: number): Promise<Order> {
-  return await this.orderRepository.manager.transaction(
-    async (transactionalEntityManager) => {
-      const order = await transactionalEntityManager.findOne(Order, {
-        where: { id: orderId, status: OrderStatus.in_delivery },
-      });
+async revertMultipleOrdersToPrepared(orderIds: number[]): Promise<Order[]> {
+  return await this.orderRepository.manager.transaction(async (transactionalEntityManager) => {
+    const orders = await transactionalEntityManager
+      .createQueryBuilder(Order, 'order')
+      .where('order.id IN (:...orderIds)', { orderIds })
+      .getMany();
 
-      if (!order) {
-        throw new HttpException('Order not found or not in delivery state', HttpStatus.NOT_FOUND);
-      }
-
-      order.status = OrderStatus.prepared;
-      await transactionalEntityManager.save(order);
-
-      return order;
+    if (orders.length !== orderIds.length) {
+      throw new HttpException('Some orders not found or not in delivery state', HttpStatus.NOT_FOUND);
     }
-  );
+
+    orders.forEach(order => {
+      order.status = OrderStatus.prepared;
+    });
+
+    await transactionalEntityManager.save(orders);
+    return orders;
+  });
 }
+
   async resetDatabase(): Promise<void> {
     try {
       // Cierra la conexión actual para evitar conflictos durante el reinicio

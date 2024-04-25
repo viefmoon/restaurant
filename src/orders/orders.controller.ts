@@ -114,6 +114,11 @@ export class OrdersController {
   async completeOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.completeOrder(id);
   }
+  
+  @Patch('/complete-multiple')
+  async completeMultipleOrders(@Body() orderIds: number[]) {
+    return this.ordersService.completeMultipleOrders(orderIds);
+  }
 
   @Patch('/:id/print')
   async registerTicketPrint(
@@ -123,9 +128,9 @@ export class OrdersController {
     return this.ordersService.registerPrint(orderId, printOrderDto.printedBy);
   }
 
-  @Patch('/:id/revert-prepared')
-  async revertOrderToPrepared(@Param('id', ParseIntPipe) id: number): Promise<Order> {
-    return this.ordersService.revertDeliveryOrderToPrepared(id);
+  @Patch('/revert-prepared-multiple')
+  async revertMultipleOrdersToPrepared(@Body() orderIds: number[]): Promise<Order[]> {
+    return this.ordersService.revertMultipleOrdersToPrepared(orderIds);
   }
 
   @Patch('/delivery/mark-in-delivery')

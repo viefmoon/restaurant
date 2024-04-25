@@ -100,12 +100,6 @@ export class Order {
     })
     pizzaPreparationStatus: OrderPreparationStatus;
 
-    @Column({
-        type: "boolean",
-        default: false
-    })
-    isTicketPrinted: boolean;
-
     @ManyToOne(() => Area, area => area.orders, { nullable: true })
     area: Area;
 
