@@ -421,7 +421,6 @@ export class OrdersService {
           ],
         });
 
-
         // Actualiza los campos de la orden
         updatedOrder.orderType = updateOrderDto.orderType;
         updatedOrder.scheduledDeliveryTime =
@@ -451,6 +450,12 @@ export class OrdersService {
         ) {
           updatedOrder.barPreparationStatus =
             OrderPreparationStatus.in_preparation;
+        } else if (
+          updateBarScreen &&
+          previousBarPreparationStatus === OrderPreparationStatus.not_required
+        ) {
+          updatedOrder.barPreparationStatus =
+            OrderPreparationStatus.created;
         }
 
         if (
@@ -459,6 +464,12 @@ export class OrdersService {
         ) {
           updatedOrder.pizzaPreparationStatus =
             OrderPreparationStatus.in_preparation;
+        } else if (
+          updatePizzaScreen &&
+          previousPizzaPreparationStatus === OrderPreparationStatus.not_required
+        ) {
+          updatedOrder.pizzaPreparationStatus =
+            OrderPreparationStatus.created;
         }
 
         if (
@@ -467,6 +478,16 @@ export class OrdersService {
         ) {
           updatedOrder.burgerPreparationStatus =
             OrderPreparationStatus.in_preparation;
+        } else if (
+          updateBurgerScreen &&
+          previousBurgerPreparationStatus === OrderPreparationStatus.not_required
+        ) {
+          // Verifica también el estado de pizzaPreparationStatus antes de cambiar burgerPreparationStatus
+          if (updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.prepared ||
+              updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.in_preparation) {
+            updatedOrder.burgerPreparationStatus =
+              OrderPreparationStatus.created;
+          }
         }
 
         // Finalmente, guarda los cambios y emite la actualización
@@ -559,6 +580,7 @@ export class OrdersService {
           OrderStatus.created,
           OrderStatus.in_preparation,
           OrderStatus.prepared,
+          OrderStatus.in_delivery,
         ]),
       },
       relations: ['area', 'table'],
@@ -982,7 +1004,6 @@ async findOrderItemsWithCounts(
       .where('order.status IN (:...orderStatuses)', {
         orderStatuses: ['created', 'in_preparation'],
       })
-      .orderBy('order.creationDate', 'DESC')
       .limit(ordersLimit)
       .getMany();
 
@@ -1021,7 +1042,6 @@ async findOrderItemsWithCounts(
     if (!acc[subcategoryName]) {
       acc[subcategoryName] = [];
     }
-    // Modificado para usar solo el nombre de la variante si está disponible
     const productOrVariantName = item.productVariant
       ? item.productVariant.name
       : item.product.name;

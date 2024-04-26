@@ -15,7 +15,7 @@ export class RolesService {
     }
 
     findAll() {
-        return this.rolesRepository.find();
+        return this.rolesRepository.find({ where: { name: 'Mesero' } });
     }
 
 }

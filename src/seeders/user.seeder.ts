@@ -11,11 +11,14 @@ export const seedUsers = async (dataSource: DataSource) => {
     const roleRepository = dataSource.getRepository(Rol);
 
     const users = [
-        { username: 'user1', name: 'Leonel', password: '123456', roles: ['ADMIN'] },
-        { username: 'user2', name: 'Sofia', password: '123456', roles: ['WAITER'] },
-        { username: 'user3', name: 'Tanilo', password: '123456', roles: ['PIZZA_CHEF'] },
-        { username: 'user4', name: 'Emma', password: '123456', roles: ['HAMBURGER_CHEF'] },
-        { username: 'user6', name: 'Hugo', password: '123456', roles: ['BAR_CHEF'] },
+        { username: 'leonel', name: 'Leonel', password: 'root_123', roles: ['ADMIN'] },
+        { username: 'daniela', name: 'Daniela', password: 'root_123', roles: ['ADMIN'] },
+        { username: 'sofia', name: 'Sofia', password: 'root_123', roles: ['ADMIN'] },
+        { username: 'bere', name: 'Bere', password: '123456', roles: ['WAITER'] },
+        { username: 'chava', name: 'Chava', password: '123456', roles: ['WAITER'] },
+        { username: 'pizza', name: 'Tanilo', password: 'pizza_admin', roles: ['PIZZA_CHEF'] },
+        { username: 'burger', name: 'Emma', password: 'burger_admin', roles: ['HAMBURGER_CHEF'] },
+        { username: 'bar', name: 'Hugo', password: 'bar_admin', roles: ['BAR_CHEF'] },
     ];
     for (const user of users) {
         let dbUser = await userRepository.findOneBy({ username: user.username });

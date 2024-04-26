@@ -6,10 +6,9 @@ export const seedRoles = async (dataSource: DataSource) => {
 
     const roles = [
         { id: 'ADMIN', name: 'Administrador', route: 'saleshome' },
-        { id: 'WAITER', name: 'Mesero', route: 'saleshome' },
+        { id: 'WAITER', name: 'Mesero', route: 'waiterhome' },
         { id: 'HAMBURGER_CHEF', name: 'Cocinero de Hamburguesa', route: 'hamburger' },
         { id: 'PIZZA_CHEF', name: 'Cocinero de Pizza', route: 'pizza' },
-        { id: 'KITCHEN_CHEF', name: 'Cocinero de Cocina', route: 'kitchen' },
         { id: 'BAR_CHEF', name: 'Bar', route: 'bar' },
     ];
 
