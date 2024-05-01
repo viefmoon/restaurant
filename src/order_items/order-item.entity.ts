@@ -33,6 +33,12 @@ export class OrderItem {
   })
   status: OrderItemStatus;
 
+  @Column({ default: false })
+  canBePreparedInAdvance: boolean;
+
+  @Column({ default: false })
+  isBeingPreparedInAdvance: boolean;
+
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   price: number;
 

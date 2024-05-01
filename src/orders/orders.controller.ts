@@ -102,6 +102,19 @@ export class OrdersController {
     return this.ordersService.updateOrderItemStatus(orderItem);
   }
 
+  @Patch('/:orderId/order-items/:orderItemId/preparation-advance-status')
+  async updateOrderItemPreparationAdvanceStatus(
+    @Param('orderId') orderId: number,
+    @Param('orderItemId') orderItemId: number,
+    @Body('isBeingPreparedInAdvance') isBeingPreparedInAdvance: boolean,
+  ) {
+    return this.ordersService.updateOrderItemPreparationAdvanceStatus(
+      orderItemId,
+      orderId,
+      isBeingPreparedInAdvance,
+    );
+  }
+
   @Patch('/:id/payment')
   async registerPayment(
     @Param('id', ParseIntPipe) id: number,

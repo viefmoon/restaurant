@@ -359,6 +359,13 @@ export class OrdersService {
           await transactionalEntityManager
           .createQueryBuilder()
           .delete()
+          .from('selected_pizza_flavors')
+          .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
+          .execute();
+
+          await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
           .from('selected_pizza_ingredients')
           .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
           .execute();
@@ -1398,6 +1405,29 @@ async revertMultipleOrdersToPrepared(orderIds: number[]): Promise<Order[]> {
     } catch (error) {
       throw new Error('Error al resetear la base de datos y ejecutar seeders: ' + error.message);
     }
+  }
+  async updateOrderItemPreparationAdvanceStatus(
+    orderItemId: number,
+    orderId: number,
+    isBeingPreparedInAdvance: boolean,
+  ): Promise<OrderItem> {
+
+    const orderItem = await this.orderItemRepository.findOne({
+      where: { id: orderItemId, order: { id: orderId } },
+      relations: ['order'],
+    });
+
+    if (!orderItem) {
+      throw new Error('Order item not found');
+    }
+
+    orderItem.isBeingPreparedInAdvance = isBeingPreparedInAdvance;
+    const savedOrderItem = await this.orderItemRepository.save(orderItem);
+    
+    // Emitir a las pantallas después de actualizar el estado de las ordenes
+    await this.appGateway.emitPendingOrderItemsToScreens();
+
+    return savedOrderItem;
   }
   
 }

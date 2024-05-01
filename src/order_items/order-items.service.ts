@@ -55,6 +55,7 @@ export class OrderItemsService {
     });
     const product = await entityManager.findOne(Product, {
       where: { id: createOrderItemDto.product.id },
+      relations: ['subcategory'],
     });
     const productVariant = createOrderItemDto.productVariant
       ? await entityManager.findOne(ProductVariant, {
@@ -62,12 +63,21 @@ export class OrderItemsService {
         })
       : null;
 
+    // Determinar si el item puede ser preparado con anticipación
+    let canBePreparedInAdvance = false;
+    if (product.subcategory.name === 'Entradas') {
+      canBePreparedInAdvance = true;
+    } else if (productVariant && ['Pizza Mediana C/R', 'Pizza Chica C/R', 'Pizza Grande C/R'].includes(productVariant.name)) {
+      canBePreparedInAdvance = true;
+    }
+
     const orderItem = entityManager.create(OrderItem, {
       order: order,
       product: product,
       productVariant: productVariant,
       comments: createOrderItemDto.comments,
       price: createOrderItemDto.price,
+      canBePreparedInAdvance: canBePreparedInAdvance
     });
 
     const savedOrderItem = await entityManager.save(orderItem);
@@ -139,7 +149,6 @@ export class OrderItemsService {
         }
       }
     }
-
     return entityManager.findOne(OrderItem, {
       where: { id: savedOrderItem.id },
       relations: [
@@ -166,7 +175,7 @@ export class OrderItemsService {
     transactionalEntityManager?: EntityManager,
   ): Promise<OrderItem> {
     const entityManager = transactionalEntityManager ? transactionalEntityManager : this.orderItemRepository.manager;
-
+  
     const orderItem = await entityManager.findOne(OrderItem, {
       where: { id: orderItemId },
       relations: [
@@ -174,20 +183,36 @@ export class OrderItemsService {
         'selectedProductObservations',
         'selectedPizzaFlavors',
         'selectedPizzaIngredients',
+        'product',
+        'product.subcategory',
       ],
     });
-
+  
     if (orderItem.status === OrderItemStatus.prepared) {
       throw new Error('No se permiten actualizaciones a un OrderItem con estado "prepared"');
     }
-
-    orderItem.productVariant =
-      updateOrderItemDto.productVariant ?? orderItem.productVariant;
+  
+    const productVariant = updateOrderItemDto.productVariant
+      ? await entityManager.findOne(ProductVariant, {
+          where: { id: updateOrderItemDto.productVariant.id },
+        })
+      : orderItem.productVariant;
+  
+    // Determinar si el item puede ser preparado con anticipación
+    let canBePreparedInAdvance = false;
+    if (orderItem.product.subcategory.name === 'Entradas') {
+      canBePreparedInAdvance = true;
+    } else if (productVariant && ['Pizza Mediana C/R', 'Pizza Chica C/R', 'Pizza Grande C/R'].includes(productVariant.name)) {
+      canBePreparedInAdvance = true;
+    }
+  
+    orderItem.productVariant = productVariant;
     orderItem.comments = updateOrderItemDto.comments ?? orderItem.comments;
     orderItem.price = updateOrderItemDto.price ?? orderItem.price;
-
+    orderItem.canBePreparedInAdvance = canBePreparedInAdvance;
+  
     await entityManager.save(orderItem);
-
+  
     // Actualizar selectedModifiers
     await entityManager.delete(SelectedModifier, {
       orderItem: { id: orderItemId },
@@ -206,7 +231,7 @@ export class OrderItemsService {
         }
       }
     }
-
+  
     // Actualizar selectedProductObservations
     await entityManager.delete(SelectedProductObservation, {
       orderItem: { id: orderItemId },
@@ -227,6 +252,7 @@ export class OrderItemsService {
         }
       }
     }
+  
     // Actualizar selectedPizzaFlavors
     await entityManager.delete(SelectedPizzaFlavor, {
       orderItem: { id: orderItemId },
@@ -241,11 +267,11 @@ export class OrderItemsService {
             orderItem: orderItem,
             pizzaFlavor: pizzaFlavor,
           });
-          const savedSelectedPizzaFlavor = await entityManager.save(selectedPizzaFlavor);
+          await entityManager.save(selectedPizzaFlavor);
         }
       }
     }
-
+  
     // Actualizar selectedPizzaIngredients
     await entityManager.delete(SelectedPizzaIngredient, {
       orderItem: { id: orderItemId },
@@ -262,31 +288,31 @@ export class OrderItemsService {
               pizzaIngredient: pizzaIngredient,
               half: ingredientDto.half,
             });
-          await entityManager.save(selectedPizzaIngredient);
+            await entityManager.save(selectedPizzaIngredient);
+          }
         }
       }
+  
+      return entityManager.findOne(OrderItem, {
+        where: { id: orderItemId },
+        relations: [
+          'selectedModifiers',
+          'selectedModifiers.modifier',
+          'selectedProductObservations',
+          'selectedProductObservations.productObservation',
+          'selectedPizzaFlavors',
+          'selectedPizzaFlavors.pizzaFlavor',
+          'selectedPizzaIngredients',
+          'selectedPizzaIngredients.pizzaIngredient',
+          'product',
+          'product.subcategory',
+          'product.subcategory.category',
+          'product.productVariants',
+          'product.modifierTypes',
+          'product.productObservationTypes',
+          'product.pizzaFlavors',
+          'product.pizzaIngredients',
+        ],
+      });
     }
-
-    return entityManager.findOne(OrderItem, {
-      where: { id: orderItemId },
-      relations: [
-        'selectedModifiers',
-        'selectedModifiers.modifier',
-        'selectedProductObservations',
-        'selectedProductObservations.productObservation',
-        'selectedPizzaFlavors',
-        'selectedPizzaFlavors.pizzaFlavor',
-        'selectedPizzaIngredients',
-        'selectedPizzaIngredients.pizzaIngredient',
-        'product',
-        'product.subcategory',
-        'product.subcategory.category',
-        'product.productVariants',
-        'product.modifierTypes',
-        'product.productObservationTypes',
-        'product.pizzaFlavors',
-        'product.pizzaIngredients',
-      ],
-    });
-  }
 }
