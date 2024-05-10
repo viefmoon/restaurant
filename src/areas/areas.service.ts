@@ -18,9 +18,10 @@ export class AreasService {
         const areaWithTables = await this.areasRepository.createQueryBuilder("area")
             .leftJoinAndSelect("area.tables", "table")
             .where("area.id = :id", { id })
+            .andWhere("table.temporaryIdentifier IS NULL")
             .getOne();
     
-        return areaWithTables.tables; 
+        return areaWithTables ? areaWithTables.tables : [];
     }
 
 }

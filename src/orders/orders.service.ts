@@ -4,7 +4,7 @@ import { Repository, In, EntityManager, DataSource } from 'typeorm';
 import { Order, OrderPreparationStatus, OrderStatus, OrderType } from './order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemsService } from 'src/order_items/order-items.service';
-import { Table } from 'src/tables/table.entity';
+import { Table, TableStatus } from 'src/tables/table.entity';
 import { AppGateway } from '../app.gateway';
 import { OrderItem, OrderItemStatus } from 'src/order_items/order-item.entity';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -19,7 +19,6 @@ import { seedUsers } from 'src/seeders/user.seeder';
 import { seedTables } from 'src/seeders/table.seeder';
 import { seedProducts } from 'src/seeders/product.seeder';
 import { UpdateOrderItemDto } from 'src/order_items/dto/update-order-item.dto';
-import { Area } from 'src/areas/area.entity';
 
 @Injectable()
 export class OrdersService {
@@ -81,12 +80,18 @@ export class OrdersService {
           tableEntity = transactionalEntityManager.create(Table, {
             number: createOrderDto.table.number,
             temporaryIdentifier: createOrderDto.table.temporaryIdentifier,
-            status: createOrderDto.table.status,
-            area: createOrderDto.area,  // Asegúrate de que el área también se maneje correctamente
+            status: TableStatus.OCCUPIED,
+            area: createOrderDto.area,
           });
           await transactionalEntityManager.save(tableEntity);
+        } else if (createOrderDto.table && createOrderDto.table.id) {
+          // Si se proporciona un ID, buscar y actualizar la mesa existente
+          tableEntity = await transactionalEntityManager.findOne(Table, { where: { id: createOrderDto.table.id } });
+          if (tableEntity) {
+            tableEntity.status = TableStatus.OCCUPIED;
+            await transactionalEntityManager.save(tableEntity);
+          }
         }
-
 
         // Inicializa los estados de preparación
         let barPreparationStatus = OrderPreparationStatus.not_required;
@@ -199,24 +204,26 @@ export class OrdersService {
         });
 
         let tableEntity = order.table;
+        const previousTable = order.table; // Save previous table for later comparison
+
         if (updateOrderDto.table) {
           if (!updateOrderDto.table.id) {
-            // Crear una nueva mesa si no se proporciona un ID
+            // Create a new table if no ID is provided
             tableEntity = transactionalEntityManager.create(Table, {
               number: updateOrderDto.table.number,
               temporaryIdentifier: updateOrderDto.table.temporaryIdentifier,
-              status: updateOrderDto.table.status,
-              area: updateOrderDto.area, // Asegúrate de que el área también se maneje correctamente
+              status: TableStatus.OCCUPIED,
+              area: updateOrderDto.area,
             });
             await transactionalEntityManager.save(tableEntity);
           } else {
-            // Si se proporciona un ID, buscar y actualizar la mesa existente
+            // If an ID is provided, find and update the existing table
             tableEntity = await transactionalEntityManager.findOne(Table, { where: { id: updateOrderDto.table.id } });
             if (tableEntity) {
               tableEntity.number = updateOrderDto.table.number || tableEntity.number;
               tableEntity.temporaryIdentifier = updateOrderDto.table.temporaryIdentifier || tableEntity.temporaryIdentifier;
-              tableEntity.status = updateOrderDto.table.status || tableEntity.status;
-              // Actualizar el área si es necesario
+              tableEntity.status = TableStatus.OCCUPIED;
+              // Update the area if necessary
               if (updateOrderDto.area) {
                 tableEntity.area = updateOrderDto.area;
               }
@@ -224,6 +231,13 @@ export class OrdersService {
             }
           }
         }
+
+        // If the table has changed, set the previous table's status to AVAILABLE
+        if (previousTable && previousTable.id !== tableEntity.id) {
+          previousTable.status = TableStatus.AVAILABLE;
+          await transactionalEntityManager.save(previousTable);
+        }
+
         const lastUpdate = await transactionalEntityManager.findOne(
           OrderUpdate,
           {
@@ -1091,9 +1105,14 @@ async findOrderItemsWithCounts(
       async (transactionalEntityManager) => {
         const order = await transactionalEntityManager.findOne(Order, {
           where: { id: orderId },
+          relations: ['table'],
         });
         if (order.status !== OrderStatus.prepared && order.status !== OrderStatus.in_delivery) {
           throw new Error('Order is not in a state that can be completed');
+        }
+        if (order.table) {
+          order.table.status = TableStatus.AVAILABLE; // Cambiar el estado a AVAILABLE
+          await transactionalEntityManager.save(order.table);
         }
         // Verificar si el monto pagado es menor que el costo total
         if (order.amountPaid < order.totalCost) {
@@ -1119,6 +1138,7 @@ async findOrderItemsWithCounts(
           where: {
             id: In(orderIds),
           },
+          relations: ['table'],
         });
   
         const completedOrders: Order[] = [];
@@ -1126,7 +1146,10 @@ async findOrderItemsWithCounts(
           if (order.status !== OrderStatus.prepared && order.status !== OrderStatus.in_delivery) {
             throw new Error(`Order with ID ${order.id} is not in a state that can be completed`);
           }
-  
+          if (order.table) {
+            order.table.status = TableStatus.AVAILABLE; // Cambiar el estado a AVAILABLE
+            await transactionalEntityManager.save(order.table);
+          }
           if (order.amountPaid < order.totalCost) {
             order.amountPaid = order.totalCost;
           }
@@ -1149,7 +1172,12 @@ async findOrderItemsWithCounts(
       async (transactionalEntityManager) => {
         const order = await transactionalEntityManager.findOne(Order, {
           where: { id: orderId },
+          relations: ['table'],
         });
+        if (order.table) {
+          order.table.status = TableStatus.AVAILABLE; // Cambiar el estado a AVAILABLE
+          await transactionalEntityManager.save(order.table);
+        }
         if (!order) {
           throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
         }
@@ -1406,12 +1434,12 @@ async revertMultipleOrdersToPrepared(orderIds: number[]): Promise<Order[]> {
       throw new Error('Error al resetear la base de datos y ejecutar seeders: ' + error.message);
     }
   }
+
   async updateOrderItemPreparationAdvanceStatus(
     orderItemId: number,
     orderId: number,
     isBeingPreparedInAdvance: boolean,
   ): Promise<OrderItem> {
-
     const orderItem = await this.orderItemRepository.findOne({
       where: { id: orderItemId, order: { id: orderId } },
       relations: ['order'],
@@ -1423,9 +1451,13 @@ async revertMultipleOrdersToPrepared(orderIds: number[]): Promise<Order[]> {
 
     orderItem.isBeingPreparedInAdvance = isBeingPreparedInAdvance;
     const savedOrderItem = await this.orderItemRepository.save(orderItem);
-    
-    // Emitir a las pantallas después de actualizar el estado de las ordenes
-    await this.appGateway.emitPendingOrderItemsToScreens();
+
+    // Emitir a la pantalla de pizza después de actualizar el estado de preparación anticipada
+    await this.appGateway.emitOrderItemPreparationAdvanceStatusUpdated(
+      orderItem.order,
+      orderItemId,
+      isBeingPreparedInAdvance,
+    );
 
     return savedOrderItem;
   }

@@ -164,6 +164,21 @@ export class AppGateway {
     }
   }
 
+  async emitOrderItemPreparationAdvanceStatusUpdated(
+    order: Order,
+    orderItemId: number,
+    isBeingPreparedInAdvance: boolean,
+  ): Promise<void> {
+
+    this.server.to('pizzaScreen').emit('orderItemPreparationAdvanceStatusUpdated', {
+      messageType: 'orderItemPreparationAdvanceStatusUpdated',
+      orderId: order.id,
+      orderItemId: orderItemId,
+      isBeingPreparedInAdvance: isBeingPreparedInAdvance,
+    });
+  
+  }
+
   async emitPendingOrderItemsToScreens(): Promise<void> {
     const pendingOrders = await this.getPendingOrders();
   
