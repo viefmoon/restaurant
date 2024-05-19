@@ -187,7 +187,7 @@ export const seedProducts = async (dataSource: DataSource) => {
               typeName: 'Extras',
               acceptsMultiple: true,
               options: [
-                { name: 'Papas gratinadas', price: 5 },
+                { name: 'Queso en la papas', price: 5 },
                 { name: 'Doble carne', price: 10 },
                 { name: 'Extra queso', price: 5 },
                 { name: 'Extra tocino', price: 5 },
@@ -196,6 +196,7 @@ export const seedProducts = async (dataSource: DataSource) => {
                 { name: 'Con pina', price: 5 },
                 { name: 'Con jamon', price: 5 },
                 { name: 'Con salchicha', price: 5 },
+                { name: 'Con ensalada', price: 15 },
               ],
             },
             {
@@ -214,7 +215,8 @@ export const seedProducts = async (dataSource: DataSource) => {
               options: [
                 'Sin verduras',
                 'Sin aderezos',
-                'Sin queso',
+                'Sin queso blanco',
+                'Sin queso amarillo',
                 'Aderezos aparte',
                 'Sin jitomate',
                 'Sin lechuga',
@@ -278,6 +280,8 @@ export const seedProducts = async (dataSource: DataSource) => {
               acceptsMultiple: true,
               options: [
                 { name: 'Doble pollo', price: 15 },
+                { name: 'Con jamon', price: 10 },
+                { name: 'Con vinagreta', price: 0 },
                 { name: 'Con queso gouda', price: 15 },
               ],
             },
@@ -287,8 +291,14 @@ export const seedProducts = async (dataSource: DataSource) => {
               typeName: 'Sin ingrediente',
               acceptsMultiple: true,
               options: [
+                'Sin parmesano',
+                'Sin gouda',
+                'Sin Elote',
                 'Sin jitomate',
-                'Sin cebolla',
+                'Sin morron',
+                'Sin betabel',
+                'Sin zanahoria',
+                'Sin aderezo'
               ],
             },
           ],
