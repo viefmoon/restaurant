@@ -373,6 +373,20 @@ export class OrdersService {
           await transactionalEntityManager
           .createQueryBuilder()
           .delete()
+          .from('selected_product_observations')
+          .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
+          .execute();
+      
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
+          .from('selected_modifiers')
+          .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
+          .execute();
+
+          await transactionalEntityManager
+          .createQueryBuilder()
+          .delete()
           .from('selected_pizza_flavors')
           .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
           .execute();
