@@ -219,6 +219,7 @@ export const seedProducts = async (dataSource: DataSource) => {
                 'Sin queso amarillo',
                 'Aderezos aparte',
                 'Sin jitomate',
+                'Sin jalapeño',
                 'Sin lechuga',
                 'Sin cebolla',
                 'Sin mostaza',
@@ -341,8 +342,8 @@ export const seedProducts = async (dataSource: DataSource) => {
             { name: 'Pizza Grande', price: 240 },
             { name: 'Pizza Mediana', price: 190 },
             { name: 'Pizza Chica', price: 140 },
-            { name: 'Pizza Grande C/R', price: 260 },
-            { name: 'Pizza Mediana C/R', price: 210 },
+            { name: 'Pizza Grande C/R', price: 270 },
+            { name: 'Pizza Mediana C/R', price: 220 },
             { name: 'Pizza Chica C/R', price: 160 },
           ],
           pizzaFlavors: [
