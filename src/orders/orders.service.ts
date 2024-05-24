@@ -1208,15 +1208,50 @@ async findOrderItemsWithCounts(
   }
 
   async getDeliveryOrders(): Promise<Order[]> {
-    return this.orderRepository.find({
-      where: {
-        orderType: OrderType.delivery,
-        status: In([
-          OrderStatus.prepared,
-          OrderStatus.in_delivery,
-        ]),
-      },
-    });
+    const queryBuilder = this.orderRepository.createQueryBuilder('order');
+  
+    queryBuilder
+      .where('order.orderType = :orderType', { orderType: OrderType.delivery })
+      .andWhere('order.status IN (:...statuses)', { statuses: [OrderStatus.prepared, OrderStatus.in_delivery] })
+      .select([
+        'order.id',
+        'order.orderNumber',
+        'order.orderType',
+        'order.status',
+        'order.amountPaid',
+        'order.comments',
+        'order.totalCost',
+        'order.scheduledDeliveryTime',
+        'order.phoneNumber',
+        'order.deliveryAddress',
+        'order.customerName',
+      ])
+      .leftJoinAndSelect('order.orderItems', 'orderItem')
+      .addSelect(['orderItem.id', 'orderItem.status', 'orderItem.price', 'orderItem.comments'])
+      .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
+      .addSelect(['productVariant.id', 'productVariant.name', 'productVariant.price'])
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .addSelect(['product.id'])
+      .leftJoinAndSelect('orderItem.selectedProductObservations', 'selectedProductObservation')
+      .addSelect(['selectedProductObservation.id'])
+      .leftJoinAndSelect('selectedProductObservation.productObservation', 'selectedProductObservationDetail')
+      .addSelect(['selectedProductObservationDetail.id', 'selectedProductObservationDetail.name'])
+      .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifier')
+      .addSelect(['selectedModifier.id'])
+      .leftJoinAndSelect('selectedModifier.modifier', 'selectedModifierDetail')
+      .addSelect(['selectedModifierDetail.id', 'selectedModifierDetail.name', 'selectedModifierDetail.price'])
+      .leftJoinAndSelect('orderItem.selectedPizzaFlavors', 'selectedPizzaFlavor')
+      .addSelect(['selectedPizzaFlavor.id'])
+      .leftJoinAndSelect('selectedPizzaFlavor.pizzaFlavor', 'selectedPizzaFlavorDetail')
+      .addSelect(['selectedPizzaFlavorDetail.id', 'selectedPizzaFlavorDetail.name', 'selectedPizzaFlavorDetail.price'])
+      .leftJoinAndSelect('orderItem.selectedPizzaIngredients', 'selectedPizzaIngredient')
+      .addSelect(['selectedPizzaIngredient.id, selectedPizzaIngredient.half'])
+      .leftJoinAndSelect('selectedPizzaIngredient.pizzaIngredient', 'selectedPizzaIngredientDetail')
+      .addSelect(['selectedPizzaIngredientDetail.id', 'selectedPizzaIngredientDetail.name', 'selectedPizzaIngredientDetail.price'])
+      .leftJoinAndSelect('order.orderAdjustments', 'orderAdjustment')
+      .addSelect(['orderAdjustment.id', 'orderAdjustment.name', 'orderAdjustment.amount']);
+  
+    return await queryBuilder.getMany();
   }
 
   async markOrdersAsInDelivery(orders: Order[]): Promise<void> {
