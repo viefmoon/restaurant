@@ -1212,7 +1212,7 @@ async findOrderItemsWithCounts(
   
     queryBuilder
       .where('order.orderType = :orderType', { orderType: OrderType.delivery })
-      .andWhere('order.status IN (:...statuses)', { statuses: [OrderStatus.prepared, OrderStatus.in_delivery] })
+      .andWhere('order.status IN (:...statuses)', { statuses: [OrderStatus.in_preparation, OrderStatus.prepared, OrderStatus.in_delivery] })
       .select([
         'order.id',
         'order.orderNumber',
