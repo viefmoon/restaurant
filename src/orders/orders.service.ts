@@ -615,7 +615,6 @@ export class OrdersService {
           OrderStatus.created,
           OrderStatus.in_preparation,
           OrderStatus.prepared,
-          OrderStatus.in_delivery,
         ]),
       },
       relations: ['area', 'table'],
