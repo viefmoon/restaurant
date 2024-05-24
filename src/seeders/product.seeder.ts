@@ -360,6 +360,7 @@ export const seedProducts = async (dataSource: DataSource) => {
             { name: 'Kahlo', price: 0 },
             { name: 'Lupita', price: 0 },
             { name: 'Pepperoni', price: 0 },
+            { name: '3 Quesos', price: 0 },
             { name: 'La Lena', price: 20 },
             { name: 'La Maria', price: 20 },
             { name: 'Malinche', price: 20 },
