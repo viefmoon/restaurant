@@ -1120,9 +1120,9 @@ async findOrderItemsWithCounts(
           where: { id: orderId },
           relations: ['table'],
         });
-        if (order.status !== OrderStatus.prepared && order.status !== OrderStatus.in_delivery) {
-          throw new Error('Order is not in a state that can be completed');
-        }
+        // if (order.status !== OrderStatus.prepared && order.status !== OrderStatus.in_delivery) {
+        //   throw new Error('Order is not in a state that can be completed');
+        // }
         if (order.table) {
           order.table.status = TableStatus.AVAILABLE; // Cambiar el estado a AVAILABLE
           await transactionalEntityManager.save(order.table);
@@ -1156,9 +1156,9 @@ async findOrderItemsWithCounts(
   
         const completedOrders: Order[] = [];
         for (const order of orders) {
-          if (order.status !== OrderStatus.prepared && order.status !== OrderStatus.in_delivery) {
-            throw new Error(`Order with ID ${order.id} is not in a state that can be completed`);
-          }
+          // if (order.status !== OrderStatus.prepared && order.status !== OrderStatus.in_delivery) {
+          //   throw new Error(`Order with ID ${order.id} is not in a state that can be completed`);
+          // }
           if (order.table) {
             order.table.status = TableStatus.AVAILABLE; // Cambiar el estado a AVAILABLE
             await transactionalEntityManager.save(order.table);
@@ -1212,7 +1212,7 @@ async findOrderItemsWithCounts(
   
     queryBuilder
       .where('order.orderType = :orderType', { orderType: OrderType.delivery })
-      .andWhere('order.status IN (:...statuses)', { statuses: [OrderStatus.in_preparation, OrderStatus.prepared, OrderStatus.in_delivery] })
+      .andWhere('order.status IN (:...statuses)', { statuses: [OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared, OrderStatus.in_delivery] })
       .select([
         'order.id',
         'order.orderNumber',
