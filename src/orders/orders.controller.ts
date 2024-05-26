@@ -127,6 +127,11 @@ export class OrdersController {
   async completeOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.completeOrder(id);
   }
+
+  @Patch('/:id/recover')
+  async recoverOrder(@Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.recoverOrder(id);
+  }
   
   @Patch('/complete-multiple')
   async completeMultipleOrders(@Body() orderIds: number[]) {

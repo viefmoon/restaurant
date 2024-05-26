@@ -759,13 +759,6 @@ export class OrdersService {
           .where('order.id = :orderId', { orderId: newOrder.id })
           .getOne();
 
-                // Verificar si el estado actual de la orden permite actualizaciones
-      if (order.status === OrderStatus.in_delivery || 
-        order.status === OrderStatus.finished || 
-        order.status === OrderStatus.canceled) {
-      throw new Error('No se permite actualizar el estado de preparación de una orden en estado ' + order.status);
-    }
-
 
         // Determina si la orden contiene ítems de pizza o entradas
         const containsPizzaorEntradasItems = order.orderItems.some(
@@ -1141,6 +1134,43 @@ async findOrderItemsWithCounts(
     // Emitir a las pantallas después de actualizar el estado de la orden
     await this.appGateway.emitPendingOrderItemsToScreens();
     
+    return order;
+  }
+
+  async recoverOrder(orderId: number): Promise<Order> {
+    const order = await this.orderRepository.manager.transaction(async (transactionalEntityManager) => {
+      const order = await transactionalEntityManager.findOne(Order, {
+        where: { id: orderId },
+      });
+  
+      if (!order) {
+        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+      }
+  
+      // Determina el estado general de la orden basado en los estados de preparación
+      const preparationStatuses = [
+        order.barPreparationStatus,
+        order.burgerPreparationStatus,
+        order.pizzaPreparationStatus,
+      ];
+  
+      if (preparationStatuses.every(status => 
+        status === OrderPreparationStatus.created || status === OrderPreparationStatus.not_required)) {
+        order.status = OrderStatus.created;
+      } else if (preparationStatuses.includes(OrderPreparationStatus.in_preparation)) {
+        order.status = OrderStatus.in_preparation;
+      } else if (preparationStatuses.every(status => 
+        status === OrderPreparationStatus.prepared || status === OrderPreparationStatus.not_required)) {
+        order.status = OrderStatus.prepared;
+      }
+  
+      await transactionalEntityManager.save(order);
+      return order;
+    });
+  
+    // Emitir a las pantallas después de actualizar el estado de la orden
+    await this.appGateway.emitPendingOrderItemsToScreens();
+  
     return order;
   }
 
