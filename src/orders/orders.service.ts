@@ -1240,7 +1240,7 @@ async findOrderItemsWithCounts(
     const queryBuilder = this.orderRepository.createQueryBuilder('order');
   
     queryBuilder
-      .where('order.orderType = :orderType', { orderType: OrderType.delivery })
+      .where('order.orderType IN (:...orderTypes)', { orderTypes: [OrderType.delivery, OrderType.pickUpWait] })
       .andWhere('order.status IN (:...statuses)', { statuses: [OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared, OrderStatus.in_delivery] })
       .select([
         'order.id',
