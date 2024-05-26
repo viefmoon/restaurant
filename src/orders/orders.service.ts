@@ -1254,6 +1254,7 @@ async findOrderItemsWithCounts(
         'order.phoneNumber',
         'order.deliveryAddress',
         'order.customerName',
+        'order.creationDate',
       ])
       .leftJoinAndSelect('order.orderItems', 'orderItem')
       .addSelect(['orderItem.id', 'orderItem.status', 'orderItem.price', 'orderItem.comments'])
