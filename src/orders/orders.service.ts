@@ -1175,7 +1175,7 @@ async findOrderItemsWithCounts(
   }
 
   async completeMultipleOrders(orderIds: number[]): Promise<Order[]> {
-    return await this.orderRepository.manager.transaction(
+    const completedOrders = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const orders = await transactionalEntityManager.find(Order, {
           where: {
@@ -1186,9 +1186,6 @@ async findOrderItemsWithCounts(
   
         const completedOrders: Order[] = [];
         for (const order of orders) {
-          // if (order.status !== OrderStatus.prepared && order.status !== OrderStatus.in_delivery) {
-          //   throw new Error(`Order with ID ${order.id} is not in a state that can be completed`);
-          // }
           if (order.table) {
             order.table.status = TableStatus.AVAILABLE; // Cambiar el estado a AVAILABLE
             await transactionalEntityManager.save(order.table);
@@ -1203,11 +1200,13 @@ async findOrderItemsWithCounts(
           completedOrders.push(order);
         }
   
-        // Emitir a las pantallas después de actualizar el estado de las órdenes
-        await this.appGateway.emitPendingOrderItemsToScreens();
         return completedOrders;
       },
     );
+
+    // Emitir a las pantallas después de actualizar el estado de las órdenes
+    await this.appGateway.emitPendingOrderItemsToScreens();
+    return completedOrders;
   }
 
   async cancelOrder(orderId: number): Promise<Order> {
