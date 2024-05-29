@@ -48,6 +48,8 @@ export const seedProducts = async (dataSource: DataSource) => {
       items: [
         { name: 'Agua Fresca', price: 35 },
         { name: 'Limonada', price: 35 },
+        { name: 'Botella agua chica', price: 15 },
+        { name: 'Botella agua grande', price: 25 },
         {
           name: 'Refresco',
           variants: [
@@ -305,10 +307,10 @@ export const seedProducts = async (dataSource: DataSource) => {
           ],
         },
         {
-          name: 'Ensalada de jamon',
+          name: 'Ensalada jardinera',
           variants: [
-            { name: 'Ens. chica jamon', price: 80 },
-            { name: 'Ens. grande jamon', price: 100 },
+            { name: 'Ens. chica jardinera', price: 80 },
+            { name: 'Ens. grande jardinera', price: 100 },
           ],
           modifiers: [
             {
