@@ -219,6 +219,7 @@ export const seedProducts = async (dataSource: DataSource) => {
                 'Sin aderezos',
                 'Sin catsup',
                 'Sin cebolla',
+                'Sin cebolla',
                 'Sin crema',
                 'Sin jalapeño',
                 'Sin jitomate',
