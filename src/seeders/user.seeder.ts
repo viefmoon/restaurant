@@ -18,6 +18,7 @@ export const seedUsers = async (dataSource: DataSource) => {
         { username: 'chava', name: 'Chava', password: '123456', roles: ['WAITER'] },
         { username: 'pablo', name: 'Pablo', password: '123456', roles: ['WAITER'] },
         { username: 'kevin', name: 'Kevin', password: '123456', roles: ['WAITER'] },
+        { username: 'cesar', name: 'cesar', password: '123456', roles: ['WAITER'] },
         { username: 'bere', name: 'Bere', password: '123456', roles: ['WAITER'] },
         { username: 'adriana', name: 'Adriana', password: '123456', roles: ['WAITER'] },
         { username: 'pizza', name: 'Tanilo', password: 'pizza_admin', roles: ['PIZZA_CHEF'] },
