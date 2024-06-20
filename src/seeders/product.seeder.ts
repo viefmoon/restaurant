@@ -191,6 +191,7 @@ export const seedProducts = async (dataSource: DataSource) => {
               options: [
                 { name: 'Queso en la papas', price: 5 },
                 { name: 'Doble carne', price: 10 },
+                { name: 'Doble pollo', price: 15 },
                 { name: 'Extra queso', price: 5 },
                 { name: 'Extra tocino', price: 5 },
                 { name: 'Res -> Pollo', price: 15 },
@@ -217,6 +218,7 @@ export const seedProducts = async (dataSource: DataSource) => {
               options: [
                 'Aderezos aparte',
                 'Sin aderezos',
+                'Sin aderezo',
                 'Sin catsup',
                 'Sin cebolla',
                 'Sin cebolla',
@@ -225,6 +227,7 @@ export const seedProducts = async (dataSource: DataSource) => {
                 'Sin jitomate',
                 'Sin lechuga',
                 'Sin mostaza',
+                'Sin tocino',
                 'Sin queso amarillo',
                 'Sin queso blanco',
                 'Sin verduras',
