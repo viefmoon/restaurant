@@ -235,6 +235,7 @@ export const seedProducts = async (dataSource: DataSource) => {
             },
           ],
         },
+        { name: 'Dedos de queso', price: 90 },
       ],
     },
     {
@@ -269,7 +270,6 @@ export const seedProducts = async (dataSource: DataSource) => {
             },
           ],
         },
-        { name: 'Dedos de queso', price: 90 },
       ],
     },
     {
