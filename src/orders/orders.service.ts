@@ -1256,6 +1256,8 @@ async findOrderItemsWithCounts(
         'order.customerName',
         'order.creationDate',
       ])
+      .leftJoinAndSelect('order.orderPrints', 'orderPrint')
+      .addSelect(['orderPrint.id', 'orderPrint.printTime', 'orderPrint.printedBy'])
       .leftJoinAndSelect('order.orderItems', 'orderItem')
       .addSelect(['orderItem.id', 'orderItem.status', 'orderItem.price', 'orderItem.comments'])
       .leftJoinAndSelect('orderItem.productVariant', 'productVariant')

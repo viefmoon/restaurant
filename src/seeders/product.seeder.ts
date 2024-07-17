@@ -33,7 +33,7 @@ export const seedProducts = async (dataSource: DataSource) => {
     {
       name: 'Bebida',
       subcategories: [
-        'Frappes y Malteadas',
+        'Frappes y Postres',
         'Jarras',
         'Cocteleria',
         'Bebidas',
@@ -121,7 +121,7 @@ export const seedProducts = async (dataSource: DataSource) => {
       ],
     },
     {
-      subcategoryName: 'Frappes y Malteadas',
+      subcategoryName: 'Frappes y Postres',
       items: [
         {
           name: 'Frappe',
@@ -146,6 +146,20 @@ export const seedProducts = async (dataSource: DataSource) => {
             { name: 'Malteada Capuchino', price: 80 },
           ],
         },
+        { name: 'Postre', price: 75 ,                 
+        observations: [
+          {
+            typeName: 'Sabor',
+            acceptsMultiple: false,
+            options: [
+              '3 chocolates',
+              'Mocaccino',
+              'Tiramisu',
+              'Flan rompope',
+              'Chesecake',
+            ],
+          },
+        ], },
       ],
     },
     {
@@ -166,6 +180,7 @@ export const seedProducts = async (dataSource: DataSource) => {
         { name: 'Pinada', price: 70 },
         { name: 'Ruso Blanco', price: 85 },
         { name: 'Sangria con Vino', price: 80 },
+        { name: 'Tequila', price: 90 },
         { name: 'Tinto de Verano', price: 90 },
         { name: 'Vampiro', price: 80 },
       ],
@@ -189,6 +204,7 @@ export const seedProducts = async (dataSource: DataSource) => {
               typeName: 'Extras',
               acceptsMultiple: true,
               options: [
+                { name: 'Partida', price: 0 },
                 { name: 'Queso en la papas', price: 5 },
                 { name: 'Doble carne', price: 10 },
                 { name: 'Extra queso', price: 5 },
@@ -225,6 +241,7 @@ export const seedProducts = async (dataSource: DataSource) => {
                 'Sin jitomate',
                 'Sin lechuga',
                 'Sin mostaza',
+                'Sin quesos',
                 'Sin queso amarillo',
                 'Sin queso blanco',
                 'Sin verduras',
@@ -263,6 +280,15 @@ export const seedProducts = async (dataSource: DataSource) => {
               typeName: 'Queso',
               acceptsMultiple: false,
               options: ['Con queso', 'Sin queso'],
+            },
+          ],
+          modifiers: [
+            {
+              typeName: 'Extras',
+              acceptsMultiple: true,
+              options: [
+                { name: 'Extra Queso', price: 10 },
+              ],
             },
           ],
         },
