@@ -519,11 +519,11 @@ export class OrdersService {
         ) {
           // Verifica también el estado de pizzaPreparationStatus antes de cambiar burgerPreparationStatus
           if (updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.prepared ||
-              updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.in_preparation) {
-            updatedOrder.burgerPreparationStatus =
-              OrderPreparationStatus.created;
-          }
+            updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.in_preparation ||
+            updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.not_required) {
+          updatedOrder.burgerPreparationStatus = OrderPreparationStatus.created;
         }
+      }
 
         // Finalmente, guarda los cambios y emite la actualización
         const savedOrder = await transactionalEntityManager.save(updatedOrder);

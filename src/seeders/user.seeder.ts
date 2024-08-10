@@ -19,11 +19,11 @@ export const seedUsers = async (dataSource: DataSource) => {
         { username: 'pablo', name: 'Pablo', password: '123456', roles: ['WAITER'] },
         { username: 'kevin', name: 'Kevin', password: '123456', roles: ['WAITER'] },
         { username: 'cesar', name: 'cesar', password: '123456', roles: ['WAITER'] },
+        { username: 'miguel', name: 'miguel', password: '123456', roles: ['WAITER'] },
         { username: 'bere', name: 'Bere', password: '123456', roles: ['WAITER'] },
-        { username: 'adriana', name: 'Adriana', password: '123456', roles: ['WAITER'] },
-        { username: 'pizza', name: 'Tanilo', password: 'pizza_admin', roles: ['PIZZA_CHEF'] },
-        { username: 'burger', name: 'Emma', password: 'burger_admin', roles: ['HAMBURGER_CHEF'] },
-        { username: 'bar', name: 'Hugo', password: 'bar_admin', roles: ['BAR_CHEF'] },
+        { username: 'pizza', name: 'Horno', password: 'pizza_admin', roles: ['PIZZA_CHEF'] },
+        { username: 'burger', name: 'Parrilla', password: 'burger_admin', roles: ['HAMBURGER_CHEF'] },
+        { username: 'bar', name: 'Barista', password: 'bar_admin', roles: ['BAR_CHEF'] },
     ];
     for (const user of users) {
         let dbUser = await userRepository.findOneBy({ username: user.username });
