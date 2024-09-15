@@ -261,14 +261,14 @@ export const seedProducts = async (dataSource: DataSource) => {
         {
           name: 'Alitas',
           variants: [
-            { name: 'BBQ', price: 140 },
-            { name: 'Picosas', price: 140 },
-            { name: 'Fritas', price: 140 },
+            { name: 'BBQ', price: 135 },
+            { name: 'Picosas', price: 135 },
+            { name: 'Fritas', price: 135 },
             { name: 'Mango Habanero', price: 140 },
-            { name: 'Alas Mixtas', price: 140 },
-            { name: '1/2 BBQ', price: 75 },
-            { name: '1/2 Picositas', price: 75 },
-            { name: '1/2 Fritas', price: 75 },
+            { name: 'Alas Mixtas', price: 135 },
+            { name: '1/2 BBQ', price: 70 },
+            { name: '1/2 Picositas', price: 70 },
+            { name: '1/2 Fritas', price: 70 },
             { name: '1/2 Mango Habanero', price: 75 },
 
           ],
