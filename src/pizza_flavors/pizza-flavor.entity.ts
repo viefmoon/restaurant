@@ -5,6 +5,7 @@ import {
   ManyToOne,
   OneToMany,
   ManyToMany,
+  PrimaryColumn,
 } from 'typeorm';
 
 import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
@@ -18,8 +19,8 @@ import { Product } from 'src/products/product.entity';
 
 @Entity({ name: 'pizza_flavors' })
 export class PizzaFlavor {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryColumn({ unique: true })
+  id: string;
 
   @Column()
   name: string;

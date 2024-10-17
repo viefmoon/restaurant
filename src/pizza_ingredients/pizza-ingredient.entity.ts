@@ -1,28 +1,40 @@
 import { Product } from 'src/products/product.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, ManyToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  ManyToMany,
+  PrimaryColumn,
+} from 'typeorm';
 
 @Entity({ name: 'pizza_ingredients' })
 export class PizzaIngredient {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryColumn({ unique: true })
+  id: string;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-    price: number;
-    
+  @Column({ type: 'text', nullable: true })
+  ingredients: string | null;
 
-    @Column({
-        type: "int",
-    })
-    ingredientValue: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  price: number;
 
-    @ManyToOne(() => Product, product => product.pizzaIngredients)
-    product: Product;
+  @Column({
+    type: 'int',
+  })
+  ingredientValue: number;
 
-    @ManyToMany(() => SelectedPizzaIngredient, selectedPizzaIngredient => selectedPizzaIngredient.pizzaIngredient)
-    selectedPizzaIngredients: SelectedPizzaIngredient[]; 
+  @ManyToOne(() => Product, (product) => product.pizzaIngredients)
+  product: Product;
+
+  @ManyToMany(
+    () => SelectedPizzaIngredient,
+    (selectedPizzaIngredient) => selectedPizzaIngredient.pizzaIngredient,
+  )
+  selectedPizzaIngredients: SelectedPizzaIngredient[];
 }
-

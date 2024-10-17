@@ -1,21 +1,24 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
 import { Product } from '../products/product.entity';
 import { OrderItem } from '../order_items/order-item.entity';
 
 @Entity({ name: 'product_variants' })
 export class ProductVariant {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryColumn({ unique: true })
+  id: string;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    price: number;
+  @Column({ type: 'text', nullable: true })
+  ingredients: string | null;
 
-    @ManyToOne(() => Product, product => product.productVariants)
-    product: Product;
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  price: number;
 
-    @OneToMany(() => OrderItem, orderItem => orderItem.productVariant)
-    orderItems: OrderItem[];
+  @ManyToOne(() => Product, (product) => product.productVariants)
+  product: Product;
+
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.productVariant)
+  orderItems: OrderItem[];
 }

@@ -1,11 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
 import { Subcategory } from '../subcategories/subcategory.entity';
 import { ProductVariant } from '../product_variants/product-variant.entity';
 import { ModifierType } from '../modifier_types/modifier-type.entity';
@@ -14,11 +7,14 @@ import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
 @Entity({ name: 'products' })
 export class Product {
-  @PrimaryColumn()
+  @PrimaryColumn({ unique: true })
   id: string;
 
   @Column()
   name: string;
+
+  @Column({ type: 'text', nullable: true })
+  ingredients: string | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   price: number | null;
