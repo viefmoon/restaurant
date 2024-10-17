@@ -28,20 +28,6 @@ export class CategoriesService {
         ],
       });
 
-      // Ordenar pizzaFlavors y pizzaIngredients por ID de forma ascendente después de la carga
-      categories.forEach((category) => {
-        category.subcategories.forEach((subcategory) => {
-          subcategory.products.forEach((product) => {
-            if (product.pizzaFlavors) {
-              product.pizzaFlavors.sort((a, b) => a.id - b.id);
-            }
-            if (product.pizzaIngredients) {
-              product.pizzaIngredients.sort((a, b) => a.id - b.id);
-            }
-          });
-        });
-      });
-
       return categories;
     } catch (error) {
       throw new HttpException(
