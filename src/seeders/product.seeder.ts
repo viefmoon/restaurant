@@ -564,7 +564,7 @@ export const seedProducts = async (dataSource: DataSource) => {
       ],
     },
     {
-      subcategoryName: 'Pizza',
+      subcategoryName: 'Pizzas',
       items: [
         {
           id: 'PZ',
