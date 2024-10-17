@@ -118,6 +118,7 @@ export const seedProducts = async (dataSource: DataSource) => {
       subcategoryName: 'Frappes y Postres',
       items: [
         {
+          id: 'F',
           name: 'Frappe',
           productVariants: [
             {
@@ -189,6 +190,7 @@ export const seedProducts = async (dataSource: DataSource) => {
       subcategoryName: 'Hamburguesas',
       items: [
         {
+          id: 'H',
           name: 'Hamburguesa',
           productVariants: [
             {
