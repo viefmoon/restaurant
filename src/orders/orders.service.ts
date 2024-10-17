@@ -1,7 +1,12 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, EntityManager, DataSource } from 'typeorm';
-import { Order, OrderPreparationStatus, OrderStatus, OrderType } from './order.entity';
+import {
+  Order,
+  OrderPreparationStatus,
+  OrderStatus,
+  OrderType,
+} from './order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderItemsService } from 'src/order_items/order-items.service';
 import { Table, TableStatus } from 'src/tables/table.entity';
@@ -19,9 +24,16 @@ import { seedUsers } from 'src/seeders/user.seeder';
 import { seedTables } from 'src/seeders/table.seeder';
 import { seedProducts } from 'src/seeders/product.seeder';
 import { UpdateOrderItemDto } from 'src/order_items/dto/update-order-item.dto';
+import { Interval } from '@nestjs/schedule';
+import axios from 'axios';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 @Injectable()
 export class OrdersService {
+  private syncOrdersUrl = process.env.SYNC_ORDERS_URL;
+
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
@@ -42,11 +54,9 @@ export class OrdersService {
     private readonly orderItemService: OrderItemsService,
     private readonly appGateway: AppGateway,
     private readonly dataSource: DataSource,
-
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
-
     let savedOrderId: number;
     const completeOrder = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
@@ -86,7 +96,9 @@ export class OrdersService {
           await transactionalEntityManager.save(tableEntity);
         } else if (createOrderDto.table && createOrderDto.table.id) {
           // Si se proporciona un ID, buscar y actualizar la mesa existente
-          tableEntity = await transactionalEntityManager.findOne(Table, { where: { id: createOrderDto.table.id } });
+          tableEntity = await transactionalEntityManager.findOne(Table, {
+            where: { id: createOrderDto.table.id },
+          });
           if (tableEntity) {
             tableEntity.status = TableStatus.OCCUPIED;
             await transactionalEntityManager.save(tableEntity);
@@ -138,8 +150,7 @@ export class OrdersService {
           area: createOrderDto.area,
           table: tableEntity,
           orderItems: [],
-          orderNumber: await this.getNextOrderNumber(new Date()), 
-
+          orderNumber: await this.getNextOrderNumber(new Date()),
         });
 
         const savedOrder = await transactionalEntityManager.save(order);
@@ -154,12 +165,18 @@ export class OrdersService {
             transactionalEntityManager,
           );
         }
-        if (createOrderDto.orderAdjustments && Array.isArray(createOrderDto.orderAdjustments)) {
+        if (
+          createOrderDto.orderAdjustments &&
+          Array.isArray(createOrderDto.orderAdjustments)
+        ) {
           for (const adjustmentDto of createOrderDto.orderAdjustments) {
-            const orderAdjustment = transactionalEntityManager.create(OrderAdjustment, {
-              ...adjustmentDto,
-              order: savedOrder,
-            });
+            const orderAdjustment = transactionalEntityManager.create(
+              OrderAdjustment,
+              {
+                ...adjustmentDto,
+                order: savedOrder,
+              },
+            );
             await transactionalEntityManager.save(orderAdjustment);
           }
         }
@@ -173,11 +190,13 @@ export class OrdersService {
 
     if (savedOrderId) {
       await this.appGateway.emitNewOrderToScreens(savedOrderId);
+    } else {
+      throw new HttpException(
+        'Error al crear la orden',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-    else {
-      throw new HttpException('Error al crear la orden', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  
+
     return completeOrder;
   }
 
@@ -187,7 +206,7 @@ export class OrdersService {
     updatedBy: string,
   ): Promise<Order> {
     let updatedOrderId: number;
-    
+
     const updatedOrder = await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const order = await transactionalEntityManager.findOne(Order, {
@@ -218,10 +237,15 @@ export class OrdersService {
             await transactionalEntityManager.save(tableEntity);
           } else {
             // If an ID is provided, find and update the existing table
-            tableEntity = await transactionalEntityManager.findOne(Table, { where: { id: updateOrderDto.table.id } });
+            tableEntity = await transactionalEntityManager.findOne(Table, {
+              where: { id: updateOrderDto.table.id },
+            });
             if (tableEntity) {
-              tableEntity.number = updateOrderDto.table.number || tableEntity.number;
-              tableEntity.temporaryIdentifier = updateOrderDto.table.temporaryIdentifier || tableEntity.temporaryIdentifier;
+              tableEntity.number =
+                updateOrderDto.table.number || tableEntity.number;
+              tableEntity.temporaryIdentifier =
+                updateOrderDto.table.temporaryIdentifier ||
+                tableEntity.temporaryIdentifier;
               tableEntity.status = TableStatus.OCCUPIED;
               // Update the area if necessary
               if (updateOrderDto.area) {
@@ -250,7 +274,8 @@ export class OrdersService {
         orderUpdate.order = order;
         orderUpdate.updatedBy = updatedBy;
         orderUpdate.updateNumber = lastUpdate ? lastUpdate.updateNumber + 1 : 1;
-        const savedOrderUpdate = await transactionalEntityManager.save(orderUpdate);
+        const savedOrderUpdate =
+          await transactionalEntityManager.save(orderUpdate);
 
         const existingItemIds = order.orderItems.map((item) => item.id);
 
@@ -313,23 +338,40 @@ export class OrdersService {
 
               // Verificar el estado de preparación de la pantalla correspondiente
               if (newItem.product.subcategory.category.name === 'Bebida') {
-                if (order.barPreparationStatus === OrderPreparationStatus.in_preparation ||
-                    order.barPreparationStatus === OrderPreparationStatus.prepared) {
+                if (
+                  order.barPreparationStatus ===
+                    OrderPreparationStatus.in_preparation ||
+                  order.barPreparationStatus === OrderPreparationStatus.prepared
+                ) {
                   newItem.status = OrderItemStatus.in_preparation;
                 }
                 updateBarScreen = true;
-              } else if (newItem.product.subcategory.category.name === 'Comida') {
-                if (newItem.product.subcategory.name === 'Pizzas' ||
-                    newItem.product.subcategory.name === 'Entradas') {
-                  if (order.pizzaPreparationStatus === OrderPreparationStatus.in_preparation ||
-                      order.pizzaPreparationStatus === OrderPreparationStatus.prepared) {
+              } else if (
+                newItem.product.subcategory.category.name === 'Comida'
+              ) {
+                if (
+                  newItem.product.subcategory.name === 'Pizzas' ||
+                  newItem.product.subcategory.name === 'Entradas'
+                ) {
+                  if (
+                    order.pizzaPreparationStatus ===
+                      OrderPreparationStatus.in_preparation ||
+                    order.pizzaPreparationStatus ===
+                      OrderPreparationStatus.prepared
+                  ) {
                     newItem.status = OrderItemStatus.in_preparation;
                   }
                   updatePizzaScreen = true;
-                } else if (newItem.product.subcategory.name === 'Hamburguesas' ||
-                           newItem.product.subcategory.name === 'Ensaladas') {
-                  if (order.burgerPreparationStatus === OrderPreparationStatus.in_preparation ||
-                      order.burgerPreparationStatus === OrderPreparationStatus.prepared) {
+                } else if (
+                  newItem.product.subcategory.name === 'Hamburguesas' ||
+                  newItem.product.subcategory.name === 'Ensaladas'
+                ) {
+                  if (
+                    order.burgerPreparationStatus ===
+                      OrderPreparationStatus.in_preparation ||
+                    order.burgerPreparationStatus ===
+                      OrderPreparationStatus.prepared
+                  ) {
                     newItem.status = OrderItemStatus.in_preparation;
                   }
                   updateBurgerScreen = true;
@@ -355,49 +397,48 @@ export class OrdersService {
         const newItemIds = updateOrderDto.orderItems
           .filter((item) => item.id)
           .map((item) => item.id);
-  
+
         // Obtener los OrderItems existentes con su estado
         const existingItems = await transactionalEntityManager.find(OrderItem, {
           where: { id: In(existingItemIds) },
           select: ['id', 'status'],
         });
-  
+
         // Filtrar los OrderItems que se pueden eliminar (estado diferente a "prepared")
         const itemsToDelete = existingItems
           .filter((item) => item.status !== OrderItemStatus.prepared)
           .map((item) => item.id)
           .filter((id) => !newItemIds.includes(id));
-  
+
         if (itemsToDelete.length > 0) {
+          await transactionalEntityManager
+            .createQueryBuilder()
+            .delete()
+            .from('selected_product_observations')
+            .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
+            .execute();
 
           await transactionalEntityManager
-          .createQueryBuilder()
-          .delete()
-          .from('selected_product_observations')
-          .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
-          .execute();
-      
-        await transactionalEntityManager
-          .createQueryBuilder()
-          .delete()
-          .from('selected_modifiers')
-          .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
-          .execute();
+            .createQueryBuilder()
+            .delete()
+            .from('selected_modifiers')
+            .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
+            .execute();
 
           await transactionalEntityManager
-          .createQueryBuilder()
-          .delete()
-          .from('selected_pizza_flavors')
-          .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
-          .execute();
+            .createQueryBuilder()
+            .delete()
+            .from('selected_pizza_flavors')
+            .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
+            .execute();
 
           await transactionalEntityManager
-          .createQueryBuilder()
-          .delete()
-          .from('selected_pizza_ingredients')
-          .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
-          .execute();
-      
+            .createQueryBuilder()
+            .delete()
+            .from('selected_pizza_ingredients')
+            .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
+            .execute();
+
           await transactionalEntityManager
             .createQueryBuilder()
             .delete()
@@ -413,11 +454,16 @@ export class OrdersService {
             .execute();
         }
 
-        const existingAdjustmentIds = order.orderAdjustments.map((adjustment) => adjustment.id);
+        const existingAdjustmentIds = order.orderAdjustments.map(
+          (adjustment) => adjustment.id,
+        );
 
         // Actualiza o crea los orderAdjustments
         for (const adjustmentDto of updateOrderDto.orderAdjustments) {
-          if (adjustmentDto.id && existingAdjustmentIds.includes(adjustmentDto.id)) {
+          if (
+            adjustmentDto.id &&
+            existingAdjustmentIds.includes(adjustmentDto.id)
+          ) {
             // Actualiza el orderAdjustment existente
             await transactionalEntityManager.update(
               OrderAdjustment,
@@ -426,14 +472,17 @@ export class OrdersService {
             );
           } else {
             // Crea un nuevo orderAdjustment
-            const newAdjustment = transactionalEntityManager.create(OrderAdjustment, {
-              ...adjustmentDto,
-              order: order,
-            });
+            const newAdjustment = transactionalEntityManager.create(
+              OrderAdjustment,
+              {
+                ...adjustmentDto,
+                order: order,
+              },
+            );
             await transactionalEntityManager.save(newAdjustment);
           }
         }
-  
+
         // Elimina los orderAdjustments que ya no están presentes
         const newAdjustmentIds = updateOrderDto.orderAdjustments
           .filter((adjustment) => adjustment.id)
@@ -442,7 +491,10 @@ export class OrdersService {
           (id) => !newAdjustmentIds.includes(id),
         );
         if (adjustmentsToDelete.length > 0) {
-          await transactionalEntityManager.delete(OrderAdjustment, adjustmentsToDelete);
+          await transactionalEntityManager.delete(
+            OrderAdjustment,
+            adjustmentsToDelete,
+          );
         }
 
         const updatedOrder = await transactionalEntityManager.findOne(Order, {
@@ -489,8 +541,7 @@ export class OrdersService {
           updateBarScreen &&
           previousBarPreparationStatus === OrderPreparationStatus.not_required
         ) {
-          updatedOrder.barPreparationStatus =
-            OrderPreparationStatus.created;
+          updatedOrder.barPreparationStatus = OrderPreparationStatus.created;
         }
 
         if (
@@ -503,8 +554,7 @@ export class OrdersService {
           updatePizzaScreen &&
           previousPizzaPreparationStatus === OrderPreparationStatus.not_required
         ) {
-          updatedOrder.pizzaPreparationStatus =
-            OrderPreparationStatus.created;
+          updatedOrder.pizzaPreparationStatus = OrderPreparationStatus.created;
         }
 
         if (
@@ -515,29 +565,36 @@ export class OrdersService {
             OrderPreparationStatus.in_preparation;
         } else if (
           updateBurgerScreen &&
-          previousBurgerPreparationStatus === OrderPreparationStatus.not_required
+          previousBurgerPreparationStatus ===
+            OrderPreparationStatus.not_required
         ) {
           // Verifica también el estado de pizzaPreparationStatus antes de cambiar burgerPreparationStatus
-          if (updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.prepared ||
-            updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.in_preparation ||
-            updatedOrder.pizzaPreparationStatus === OrderPreparationStatus.not_required) {
-          updatedOrder.burgerPreparationStatus = OrderPreparationStatus.created;
+          if (
+            updatedOrder.pizzaPreparationStatus ===
+              OrderPreparationStatus.prepared ||
+            updatedOrder.pizzaPreparationStatus ===
+              OrderPreparationStatus.in_preparation ||
+            updatedOrder.pizzaPreparationStatus ===
+              OrderPreparationStatus.not_required
+          ) {
+            updatedOrder.burgerPreparationStatus =
+              OrderPreparationStatus.created;
+          }
         }
-      }
 
         // Finalmente, guarda los cambios y emite la actualización
         const savedOrder = await transactionalEntityManager.save(updatedOrder);
         updatedOrderId = savedOrder.id;
-  
+
         return savedOrder;
       },
     );
-  
+
     // Asegúrate de que la transacción se haya completado antes de emitir el evento
     if (updatedOrderId) {
       this.appGateway.emitOrderUpdated(updatedOrderId);
     }
-  
+
     return updatedOrder;
   }
 
@@ -565,7 +622,7 @@ export class OrdersService {
   private itemDtoHasSignificantChanges(
     existingItem: OrderItem,
     itemDto: UpdateOrderItemDto,
-   ): boolean {
+  ): boolean {
     if (
       existingItem.comments !== itemDto.comments ||
       existingItem.product.id !== itemDto.product.id ||
@@ -575,15 +632,15 @@ export class OrdersService {
     ) {
       return true;
     }
-  
+
     // Compara las relaciones que pueden tener arrays de IDs para simplificar
     const compareArrays = (arr1: any[], arr2: any[]): boolean => {
       if (arr1.length !== arr2.length) return true;
-      const ids1 = arr1.map(item => item.id).sort();
-      const ids2 = arr2.map(item => item.id).sort();
+      const ids1 = arr1.map((item) => item.id).sort();
+      const ids2 = arr2.map((item) => item.id).sort();
       return !ids1.every((value, index) => value === ids2[index]);
     };
-  
+
     // Ejemplo de comparación de relaciones (modificadores seleccionados, observaciones, etc.)
     if (
       compareArrays(
@@ -626,7 +683,9 @@ export class OrdersService {
     const queryBuilder = this.orderRepository.createQueryBuilder('order');
 
     queryBuilder
-      .where('order.status IN (:...statuses)', { statuses: [OrderStatus.finished, OrderStatus.canceled] })
+      .where('order.status IN (:...statuses)', {
+        statuses: [OrderStatus.finished, OrderStatus.canceled],
+      })
       .select([
         'order.id',
         'order.orderNumber',
@@ -647,29 +706,75 @@ export class OrdersService {
       .leftJoinAndSelect('order.table', 'table')
       .addSelect(['table.id', 'table.number', 'table.status'])
       .leftJoinAndSelect('order.orderItems', 'orderItem')
-      .addSelect(['orderItem.id', 'orderItem.status', 'orderItem.price', 'orderItem.comments'])
+      .addSelect([
+        'orderItem.id',
+        'orderItem.status',
+        'orderItem.price',
+        'orderItem.comments',
+      ])
       .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
-      .addSelect(['productVariant.id', 'productVariant.name', 'productVariant.price'])
+      .addSelect([
+        'productVariant.id',
+        'productVariant.name',
+        'productVariant.price',
+      ])
       .leftJoinAndSelect('orderItem.product', 'product')
-      .addSelect(['product.id',])
-      .leftJoinAndSelect('orderItem.selectedProductObservations', 'selectedProductObservation')
+      .addSelect(['product.id'])
+      .leftJoinAndSelect(
+        'orderItem.selectedProductObservations',
+        'selectedProductObservation',
+      )
       .addSelect(['selectedProductObservation.id'])
-      .leftJoinAndSelect('selectedProductObservation.productObservation', 'selectedProductObservationDetail')
-      .addSelect(['selectedProductObservationDetail.id', 'selectedProductObservationDetail.name'])
+      .leftJoinAndSelect(
+        'selectedProductObservation.productObservation',
+        'selectedProductObservationDetail',
+      )
+      .addSelect([
+        'selectedProductObservationDetail.id',
+        'selectedProductObservationDetail.name',
+      ])
       .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifier')
       .addSelect(['selectedModifier.id'])
       .leftJoinAndSelect('selectedModifier.modifier', 'selectedModifierDetail')
-      .addSelect(['selectedModifierDetail.id', 'selectedModifierDetail.name', 'selectedModifierDetail.price'])
-      .leftJoinAndSelect('orderItem.selectedPizzaFlavors', 'selectedPizzaFlavor')
+      .addSelect([
+        'selectedModifierDetail.id',
+        'selectedModifierDetail.name',
+        'selectedModifierDetail.price',
+      ])
+      .leftJoinAndSelect(
+        'orderItem.selectedPizzaFlavors',
+        'selectedPizzaFlavor',
+      )
       .addSelect(['selectedPizzaFlavor.id'])
-      .leftJoinAndSelect('selectedPizzaFlavor.pizzaFlavor', 'selectedPizzaFlavorDetail')
-      .addSelect(['selectedPizzaFlavorDetail.id', 'selectedPizzaFlavorDetail.name', 'selectedPizzaFlavorDetail.price'])
-      .leftJoinAndSelect('orderItem.selectedPizzaIngredients', 'selectedPizzaIngredient')
+      .leftJoinAndSelect(
+        'selectedPizzaFlavor.pizzaFlavor',
+        'selectedPizzaFlavorDetail',
+      )
+      .addSelect([
+        'selectedPizzaFlavorDetail.id',
+        'selectedPizzaFlavorDetail.name',
+        'selectedPizzaFlavorDetail.price',
+      ])
+      .leftJoinAndSelect(
+        'orderItem.selectedPizzaIngredients',
+        'selectedPizzaIngredient',
+      )
       .addSelect(['selectedPizzaIngredient.id, selectedPizzaIngredient.half'])
-      .leftJoinAndSelect('selectedPizzaIngredient.pizzaIngredient', 'selectedPizzaIngredientDetail')
-      .addSelect(['selectedPizzaIngredientDetail.id', 'selectedPizzaIngredientDetail.name', 'selectedPizzaIngredientDetail.price'])
+      .leftJoinAndSelect(
+        'selectedPizzaIngredient.pizzaIngredient',
+        'selectedPizzaIngredientDetail',
+      )
+      .addSelect([
+        'selectedPizzaIngredientDetail.id',
+        'selectedPizzaIngredientDetail.name',
+        'selectedPizzaIngredientDetail.price',
+      ])
       .leftJoinAndSelect('order.orderAdjustments', 'orderAdjustment')
-      .addSelect(['orderAdjustment.id', 'orderAdjustment.name', 'orderAdjustment.amount']);
+      .addSelect([
+        'orderAdjustment.id',
+        'orderAdjustment.name',
+        'orderAdjustment.amount',
+      ]);
 
     const orders = await queryBuilder.getMany();
 
@@ -678,7 +783,7 @@ export class OrdersService {
 
   async getOrderById(orderId: number): Promise<Order> {
     const queryBuilder = this.orderRepository.createQueryBuilder('order');
-  
+
     queryBuilder
       .where('order.id = :orderId', { orderId })
       .select([
@@ -697,34 +802,85 @@ export class OrdersService {
       .leftJoinAndSelect('order.area', 'area')
       .addSelect(['area.id', 'area.name'])
       .leftJoinAndSelect('order.table', 'table')
-      .addSelect(['table.id', 'table.number', 'table.temporaryIdentifier', 'table.status'])
+      .addSelect([
+        'table.id',
+        'table.number',
+        'table.temporaryIdentifier',
+        'table.status',
+      ])
       .leftJoinAndSelect('order.orderItems', 'orderItem')
-      .addSelect(['orderItem.id', 'orderItem.status', 'orderItem.price', 'orderItem.comments'])
+      .addSelect([
+        'orderItem.id',
+        'orderItem.status',
+        'orderItem.price',
+        'orderItem.comments',
+      ])
       .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
-      .addSelect(['productVariant.id', 'productVariant.name', 'productVariant.price'])
+      .addSelect([
+        'productVariant.id',
+        'productVariant.name',
+        'productVariant.price',
+      ])
       .leftJoinAndSelect('orderItem.product', 'product')
-      .addSelect(['product.id',])
-      .leftJoinAndSelect('orderItem.selectedProductObservations', 'selectedProductObservation')
+      .addSelect(['product.id'])
+      .leftJoinAndSelect(
+        'orderItem.selectedProductObservations',
+        'selectedProductObservation',
+      )
       .addSelect(['selectedProductObservation.id'])
-      .leftJoinAndSelect('selectedProductObservation.productObservation', 'selectedProductObservationDetail')
-      .addSelect(['selectedProductObservationDetail.id', 'selectedProductObservationDetail.name'])
+      .leftJoinAndSelect(
+        'selectedProductObservation.productObservation',
+        'selectedProductObservationDetail',
+      )
+      .addSelect([
+        'selectedProductObservationDetail.id',
+        'selectedProductObservationDetail.name',
+      ])
       .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifier')
       .addSelect(['selectedModifier.id'])
       .leftJoinAndSelect('selectedModifier.modifier', 'selectedModifierDetail')
-      .addSelect(['selectedModifierDetail.id', 'selectedModifierDetail.name', 'selectedModifierDetail.price'])
-      .leftJoinAndSelect('orderItem.selectedPizzaFlavors', 'selectedPizzaFlavor')
+      .addSelect([
+        'selectedModifierDetail.id',
+        'selectedModifierDetail.name',
+        'selectedModifierDetail.price',
+      ])
+      .leftJoinAndSelect(
+        'orderItem.selectedPizzaFlavors',
+        'selectedPizzaFlavor',
+      )
       .addSelect(['selectedPizzaFlavor.id'])
-      .leftJoinAndSelect('selectedPizzaFlavor.pizzaFlavor', 'selectedPizzaFlavorDetail')
-      .addSelect(['selectedPizzaFlavorDetail.id', 'selectedPizzaFlavorDetail.name', 'selectedPizzaFlavorDetail.price'])
-      .leftJoinAndSelect('orderItem.selectedPizzaIngredients', 'selectedPizzaIngredient')
+      .leftJoinAndSelect(
+        'selectedPizzaFlavor.pizzaFlavor',
+        'selectedPizzaFlavorDetail',
+      )
+      .addSelect([
+        'selectedPizzaFlavorDetail.id',
+        'selectedPizzaFlavorDetail.name',
+        'selectedPizzaFlavorDetail.price',
+      ])
+      .leftJoinAndSelect(
+        'orderItem.selectedPizzaIngredients',
+        'selectedPizzaIngredient',
+      )
       .addSelect(['selectedPizzaIngredient.id, selectedPizzaIngredient.half'])
-      .leftJoinAndSelect('selectedPizzaIngredient.pizzaIngredient', 'selectedPizzaIngredientDetail')
-      .addSelect(['selectedPizzaIngredientDetail.id', 'selectedPizzaIngredientDetail.name', 'selectedPizzaIngredientDetail.price'])
+      .leftJoinAndSelect(
+        'selectedPizzaIngredient.pizzaIngredient',
+        'selectedPizzaIngredientDetail',
+      )
+      .addSelect([
+        'selectedPizzaIngredientDetail.id',
+        'selectedPizzaIngredientDetail.name',
+        'selectedPizzaIngredientDetail.price',
+      ])
       .leftJoinAndSelect('order.orderAdjustments', 'orderAdjustment')
-      .addSelect(['orderAdjustment.id', 'orderAdjustment.name', 'orderAdjustment.amount']);
-  
+      .addSelect([
+        'orderAdjustment.id',
+        'orderAdjustment.name',
+        'orderAdjustment.amount',
+      ]);
+
     const result = await queryBuilder.getOne();
-  
+
     if (!result) {
       throw new Error('Order not found');
     }
@@ -759,7 +915,6 @@ export class OrdersService {
           .where('order.id = :orderId', { orderId: newOrder.id })
           .getOne();
 
-
         // Determina si la orden contiene ítems de pizza o entradas
         const containsPizzaorEntradasItems = order.orderItems.some(
           (item) =>
@@ -773,7 +928,7 @@ export class OrdersService {
             item.product.subcategory.name === 'Ensaladas',
         );
 
-                // Variables para almacenar los estados de preparación originales
+        // Variables para almacenar los estados de preparación originales
         const originalBarPreparationStatus = order.barPreparationStatus;
         const originalBurgerPreparationStatus = order.burgerPreparationStatus;
         const originalPizzaPreparationStatus = order.pizzaPreparationStatus;
@@ -821,33 +976,43 @@ export class OrdersService {
             ) {
               // Si el estado original era "prepared" y el nuevo estado es "in_preparation", no actualiza el estado del orderItem
               if (
-                originalBarPreparationStatus === OrderPreparationStatus.prepared &&
-                newOrder.barPreparationStatus === OrderPreparationStatus.in_preparation
+                originalBarPreparationStatus ===
+                  OrderPreparationStatus.prepared &&
+                newOrder.barPreparationStatus ===
+                  OrderPreparationStatus.in_preparation
               ) {
                 return item;
               }
               item.status = OrderItemStatus[order.barPreparationStatus];
             } else if (item.product.subcategory.category.name === 'Comida') {
               if (
-                ['Pizzas', 'Entradas'].includes(item.product.subcategory.name) &&
+                ['Pizzas', 'Entradas'].includes(
+                  item.product.subcategory.name,
+                ) &&
                 String(newOrder.pizzaPreparationStatus) !== 'null'
               ) {
                 // Si el estado original era "prepared" y el nuevo estado es "in_preparation", no actualiza el estado del orderItem
                 if (
-                  originalPizzaPreparationStatus === OrderPreparationStatus.prepared &&
-                  newOrder.pizzaPreparationStatus === OrderPreparationStatus.in_preparation
+                  originalPizzaPreparationStatus ===
+                    OrderPreparationStatus.prepared &&
+                  newOrder.pizzaPreparationStatus ===
+                    OrderPreparationStatus.in_preparation
                 ) {
                   return item;
                 }
                 item.status = OrderItemStatus[order.pizzaPreparationStatus];
               } else if (
-                ['Hamburguesas', 'Ensaladas'].includes(item.product.subcategory.name) &&
+                ['Hamburguesas', 'Ensaladas'].includes(
+                  item.product.subcategory.name,
+                ) &&
                 String(newOrder.burgerPreparationStatus) !== 'null'
               ) {
                 // Si el estado original era "prepared" y el nuevo estado es "in_preparation", no actualiza el estado del orderItem
                 if (
-                  originalBurgerPreparationStatus === OrderPreparationStatus.prepared &&
-                  newOrder.burgerPreparationStatus === OrderPreparationStatus.in_preparation
+                  originalBurgerPreparationStatus ===
+                    OrderPreparationStatus.prepared &&
+                  newOrder.burgerPreparationStatus ===
+                    OrderPreparationStatus.in_preparation
                 ) {
                   return item;
                 }
@@ -865,19 +1030,21 @@ export class OrdersService {
           order.burgerPreparationStatus,
           order.pizzaPreparationStatus,
         ];
-        
 
         // Si todos los estados de preparación están en 'created' o 'not_required', entonces la orden está 'created'
         if (
-          preparationStatuses.every((status) =>
-            status === OrderPreparationStatus.created || status === OrderPreparationStatus.not_required
+          preparationStatuses.every(
+            (status) =>
+              status === OrderPreparationStatus.created ||
+              status === OrderPreparationStatus.not_required,
           )
         ) {
           order.status = OrderStatus.created;
         } else if (
           // Si al menos uno de los estados de preparación está en 'in_preparation', entonces la orden está 'in_preparation'
           preparationStatuses.includes(OrderPreparationStatus.in_preparation) ||
-          (preparationStatuses.includes(OrderPreparationStatus.prepared) && preparationStatuses.includes(OrderPreparationStatus.created))
+          (preparationStatuses.includes(OrderPreparationStatus.prepared) &&
+            preparationStatuses.includes(OrderPreparationStatus.created))
         ) {
           order.status = OrderStatus.in_preparation;
         } else if (
@@ -893,8 +1060,8 @@ export class OrdersService {
         }
 
         await transactionalEntityManager.save(order);
-      updatedOrderId = order.id;
-      return await transactionalEntityManager
+        updatedOrderId = order.id;
+        return await transactionalEntityManager
           .createQueryBuilder(Order, 'order')
           .leftJoinAndSelect('order.orderItems', 'orderItem')
           .leftJoinAndSelect('orderItem.product', 'product')
@@ -918,17 +1085,17 @@ export class OrdersService {
           ])
           .where('order.id = :orderId', { orderId: newOrder.id })
           .getOne();
-        },
-      );
-    
-      // Asegúrate de que la transacción se haya completado antes de emitir el evento
-      if (updatedOrderId) {
-        this.appGateway.emitOrderStatusUpdated(completeOrder);
-      }
-    
-      return completeOrder;
+      },
+    );
+
+    // Asegúrate de que la transacción se haya completado antes de emitir el evento
+    if (updatedOrderId) {
+      this.appGateway.emitOrderStatusUpdated(completeOrder);
     }
-  
+
+    return completeOrder;
+  }
+
   async updateOrderItemStatus(newOrderItem: OrderItem): Promise<OrderItem> {
     let updatedOrderItemId: number;
     let orderId: number;
@@ -961,137 +1128,146 @@ export class OrdersService {
             orderItemId: newOrderItem.id,
           })
           .getOne();
-  
+
         // Verifica el estado de la Order relacionada
         if (orderItem.order.status === OrderStatus.created) {
           // Si la Order está en estado 'created', no se permiten cambios de estado de OrderItems
-          throw new Error('No se permiten cambios de estado de OrderItems cuando la Order está en estado "created"');
+          throw new Error(
+            'No se permiten cambios de estado de OrderItems cuando la Order está en estado "created"',
+          );
         } else if (orderItem.order.status === OrderStatus.in_preparation) {
           // Si la Order está en estado 'in_preparation', solo se permiten cambios de estado a 'prepared' y 'in_preparation'
-          if (newOrderItem.status !== OrderItemStatus.prepared && newOrderItem.status !== OrderItemStatus.in_preparation) {
-            throw new Error('Solo se permiten cambios de estado de OrderItems a "prepared" y "in_preparation" cuando la Order está en estado "in_preparation"');
+          if (
+            newOrderItem.status !== OrderItemStatus.prepared &&
+            newOrderItem.status !== OrderItemStatus.in_preparation
+          ) {
+            throw new Error(
+              'Solo se permiten cambios de estado de OrderItems a "prepared" y "in_preparation" cuando la Order está en estado "in_preparation"',
+            );
           }
         } else if (orderItem.order.status === OrderStatus.prepared) {
           // Si la Order está en estado 'prepared', no se permiten cambios de estado de OrderItems
-          throw new Error('No se permiten cambios de estado de OrderItems cuando la Order está en estado "prepared"');
+          throw new Error(
+            'No se permiten cambios de estado de OrderItems cuando la Order está en estado "prepared"',
+          );
         }
-  
+
         // Actualiza el estado del OrderItem
         orderItem.status = newOrderItem.status;
-  
+
         await transactionalEntityManager.save(orderItem);
         updatedOrderItemId = orderItem.id;
         orderId = orderItem.order.id;
-  
+
         return orderItem;
       },
     );
-  
-  // Recupera el objeto Order completo con todas las relaciones necesarias para emitOrderItemStatusUpdated
-  const completeOrder = await this.orderRepository
-    .createQueryBuilder('order')
-    .leftJoinAndSelect('order.orderItems', 'orderItem')
-    .leftJoinAndSelect('orderItem.product', 'product')
-    .leftJoinAndSelect('product.subcategory', 'subcategory')
-    .leftJoinAndSelect('subcategory.category', 'category')
-    .select([
-      'order.id',
-      'order.status',
-      'order.orderType',
-      'orderItem.id',
-      'orderItem.status',
-      'product.id',
-      'product.name',
-      'subcategory.id',
-      'subcategory.name',
-      'category.id',
-      'category.name',
-    ])
-    .where('order.id = :orderId', { orderId })
-    .getOne();
 
-  // Asegúrate de que la transacción se haya completado antes de emitir el evento
-  if (updatedOrderItemId && completeOrder) {
-    await this.appGateway.emitOrderItemStatusUpdated(
-      completeOrder,
-      updatedOrderItemId,
-    );
-  }
-
-  return orderItem;
-}
-async findOrderItemsWithCounts(
-  subcategories?: string[],
-  ordersLimit?: number,
-): Promise<any[]> {
-  let recentOrderIds: number[] = [];
-  if (ordersLimit) {
-    const recentOrders = await this.orderRepository
+    // Recupera el objeto Order completo con todas las relaciones necesarias para emitOrderItemStatusUpdated
+    const completeOrder = await this.orderRepository
       .createQueryBuilder('order')
-      .where('order.status IN (:...orderStatuses)', {
-        orderStatuses: ['created', 'in_preparation'],
+      .leftJoinAndSelect('order.orderItems', 'orderItem')
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .leftJoinAndSelect('product.subcategory', 'subcategory')
+      .leftJoinAndSelect('subcategory.category', 'category')
+      .select([
+        'order.id',
+        'order.status',
+        'order.orderType',
+        'orderItem.id',
+        'orderItem.status',
+        'product.id',
+        'product.name',
+        'subcategory.id',
+        'subcategory.name',
+        'category.id',
+        'category.name',
+      ])
+      .where('order.id = :orderId', { orderId })
+      .getOne();
+
+    // Asegúrate de que la transacción se haya completado antes de emitir el evento
+    if (updatedOrderItemId && completeOrder) {
+      await this.appGateway.emitOrderItemStatusUpdated(
+        completeOrder,
+        updatedOrderItemId,
+      );
+    }
+
+    return orderItem;
+  }
+  async findOrderItemsWithCounts(
+    subcategories?: string[],
+    ordersLimit?: number,
+  ): Promise<any[]> {
+    let recentOrderIds: number[] = [];
+    if (ordersLimit) {
+      const recentOrders = await this.orderRepository
+        .createQueryBuilder('order')
+        .where('order.status IN (:...orderStatuses)', {
+          orderStatuses: ['created', 'in_preparation'],
+        })
+        .limit(ordersLimit)
+        .getMany();
+
+      recentOrderIds = recentOrders.map((order) => order.id);
+    }
+
+    const queryBuilder = this.orderItemRepository
+      .createQueryBuilder('orderItem')
+      .leftJoinAndSelect('orderItem.order', 'order')
+      .leftJoinAndSelect('orderItem.product', 'product')
+      .leftJoinAndSelect('product.subcategory', 'subcategory')
+      .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
+      .where('orderItem.status IN (:...statuses)', {
+        statuses: ['created', 'in_preparation'],
       })
-      .limit(ordersLimit)
-      .getMany();
+      .andWhere('order.status IN (:...orderStatuses)', {
+        orderStatuses: ['created', 'in_preparation'],
+      });
 
-    recentOrderIds = recentOrders.map((order) => order.id);
-  }
-
-  const queryBuilder = this.orderItemRepository
-    .createQueryBuilder('orderItem')
-    .leftJoinAndSelect('orderItem.order', 'order')
-    .leftJoinAndSelect('orderItem.product', 'product')
-    .leftJoinAndSelect('product.subcategory', 'subcategory')
-    .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
-    .where('orderItem.status IN (:...statuses)', {
-      statuses: ['created', 'in_preparation'],
-    })
-    .andWhere('order.status IN (:...orderStatuses)', {
-      orderStatuses: ['created', 'in_preparation'],
-    });
-
-  if (subcategories && subcategories.length > 0) {
-    queryBuilder.andWhere('subcategory.name IN (:...subcategories)', {
-      subcategories,
-    });
-  }
-
-  if (ordersLimit) {
-    queryBuilder.andWhere('order.id IN (:...recentOrderIds)', {
-      recentOrderIds,
-    });
-  }
-
-  const orderItems = await queryBuilder.getMany();
-
-  const groupedBySubcategory = orderItems.reduce((acc, item) => {
-    const subcategoryName = item.product.subcategory.name;
-    if (!acc[subcategoryName]) {
-      acc[subcategoryName] = [];
+    if (subcategories && subcategories.length > 0) {
+      queryBuilder.andWhere('subcategory.name IN (:...subcategories)', {
+        subcategories,
+      });
     }
-    const productOrVariantName = item.productVariant
-      ? item.productVariant.name
-      : item.product.name;
-    const existingProductOrVariant = acc[subcategoryName].find(
-      (p) => p.name === productOrVariantName,
+
+    if (ordersLimit) {
+      queryBuilder.andWhere('order.id IN (:...recentOrderIds)', {
+        recentOrderIds,
+      });
+    }
+
+    const orderItems = await queryBuilder.getMany();
+
+    const groupedBySubcategory = orderItems.reduce((acc, item) => {
+      const subcategoryName = item.product.subcategory.name;
+      if (!acc[subcategoryName]) {
+        acc[subcategoryName] = [];
+      }
+      const productOrVariantName = item.productVariant
+        ? item.productVariant.name
+        : item.product.name;
+      const existingProductOrVariant = acc[subcategoryName].find(
+        (p) => p.name === productOrVariantName,
+      );
+      if (existingProductOrVariant) {
+        existingProductOrVariant.count += 1;
+      } else {
+        acc[subcategoryName].push({ name: productOrVariantName, count: 1 });
+      }
+      return acc;
+    }, {});
+
+    const result = Object.entries(groupedBySubcategory).map(
+      ([subcategoryName, products]) => ({
+        subcategoryName,
+        products,
+      }),
     );
-    if (existingProductOrVariant) {
-      existingProductOrVariant.count += 1;
-    } else {
-      acc[subcategoryName].push({ name: productOrVariantName, count: 1 });
-    }
-    return acc;
-  }, {});
 
-  const result = Object.entries(groupedBySubcategory).map(
-    ([subcategoryName, products]) => ({
-      subcategoryName,
-      products,
-    }),
-  );
-
-  return result;
-}
+    return result;
+  }
 
   async registerPayment(orderId: number, amount: number): Promise<Order> {
     return await this.orderRepository.manager.transaction(
@@ -1133,44 +1309,58 @@ async findOrderItemsWithCounts(
 
     // Emitir a las pantallas después de actualizar el estado de la orden
     await this.appGateway.emitPendingOrderItemsToScreens();
-    
+
     return order;
   }
 
   async recoverOrder(orderId: number): Promise<Order> {
-    const order = await this.orderRepository.manager.transaction(async (transactionalEntityManager) => {
-      const order = await transactionalEntityManager.findOne(Order, {
-        where: { id: orderId },
-      });
-  
-      if (!order) {
-        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
-      }
-  
-      // Determina el estado general de la orden basado en los estados de preparación
-      const preparationStatuses = [
-        order.barPreparationStatus,
-        order.burgerPreparationStatus,
-        order.pizzaPreparationStatus,
-      ];
-  
-      if (preparationStatuses.every(status => 
-        status === OrderPreparationStatus.created || status === OrderPreparationStatus.not_required)) {
-        order.status = OrderStatus.created;
-      } else if (preparationStatuses.includes(OrderPreparationStatus.in_preparation)) {
-        order.status = OrderStatus.in_preparation;
-      } else if (preparationStatuses.every(status => 
-        status === OrderPreparationStatus.prepared || status === OrderPreparationStatus.not_required)) {
-        order.status = OrderStatus.prepared;
-      }
-  
-      await transactionalEntityManager.save(order);
-      return order;
-    });
-  
+    const order = await this.orderRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const order = await transactionalEntityManager.findOne(Order, {
+          where: { id: orderId },
+        });
+
+        if (!order) {
+          throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+        }
+
+        // Determina el estado general de la orden basado en los estados de preparación
+        const preparationStatuses = [
+          order.barPreparationStatus,
+          order.burgerPreparationStatus,
+          order.pizzaPreparationStatus,
+        ];
+
+        if (
+          preparationStatuses.every(
+            (status) =>
+              status === OrderPreparationStatus.created ||
+              status === OrderPreparationStatus.not_required,
+          )
+        ) {
+          order.status = OrderStatus.created;
+        } else if (
+          preparationStatuses.includes(OrderPreparationStatus.in_preparation)
+        ) {
+          order.status = OrderStatus.in_preparation;
+        } else if (
+          preparationStatuses.every(
+            (status) =>
+              status === OrderPreparationStatus.prepared ||
+              status === OrderPreparationStatus.not_required,
+          )
+        ) {
+          order.status = OrderStatus.prepared;
+        }
+
+        await transactionalEntityManager.save(order);
+        return order;
+      },
+    );
+
     // Emitir a las pantallas después de actualizar el estado de la orden
     await this.appGateway.emitPendingOrderItemsToScreens();
-  
+
     return order;
   }
 
@@ -1183,7 +1373,7 @@ async findOrderItemsWithCounts(
           },
           relations: ['table'],
         });
-  
+
         const completedOrders: Order[] = [];
         for (const order of orders) {
           if (order.table) {
@@ -1193,13 +1383,13 @@ async findOrderItemsWithCounts(
           if (order.amountPaid < order.totalCost) {
             order.amountPaid = order.totalCost;
           }
-  
+
           order.status = OrderStatus.finished;
           order.completionDate = new Date();
           await transactionalEntityManager.save(order);
           completedOrders.push(order);
         }
-  
+
         return completedOrders;
       },
     );
@@ -1232,16 +1422,25 @@ async findOrderItemsWithCounts(
 
     // Emitir a las pantallas después de actualizar el estado de la orden
     await this.appGateway.emitPendingOrderItemsToScreens();
-    
+
     return order;
   }
 
   async getDeliveryOrders(): Promise<Order[]> {
     const queryBuilder = this.orderRepository.createQueryBuilder('order');
-  
+
     queryBuilder
-      .where('order.orderType IN (:...orderTypes)', { orderTypes: [OrderType.delivery, OrderType.pickUpWait] })
-      .andWhere('order.status IN (:...statuses)', { statuses: [OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared, OrderStatus.in_delivery] })
+      .where('order.orderType IN (:...orderTypes)', {
+        orderTypes: [OrderType.delivery, OrderType.pickUpWait],
+      })
+      .andWhere('order.status IN (:...statuses)', {
+        statuses: [
+          OrderStatus.created,
+          OrderStatus.in_preparation,
+          OrderStatus.prepared,
+          OrderStatus.in_delivery,
+        ],
+      })
       .select([
         'order.id',
         'order.orderNumber',
@@ -1257,54 +1456,106 @@ async findOrderItemsWithCounts(
         'order.creationDate',
       ])
       .leftJoinAndSelect('order.orderPrints', 'orderPrint')
-      .addSelect(['orderPrint.id', 'orderPrint.printTime', 'orderPrint.printedBy'])
+      .addSelect([
+        'orderPrint.id',
+        'orderPrint.printTime',
+        'orderPrint.printedBy',
+      ])
       .leftJoinAndSelect('order.orderItems', 'orderItem')
-      .addSelect(['orderItem.id', 'orderItem.status', 'orderItem.price', 'orderItem.comments'])
+      .addSelect([
+        'orderItem.id',
+        'orderItem.status',
+        'orderItem.price',
+        'orderItem.comments',
+      ])
       .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
-      .addSelect(['productVariant.id', 'productVariant.name', 'productVariant.price'])
+      .addSelect([
+        'productVariant.id',
+        'productVariant.name',
+        'productVariant.price',
+      ])
       .leftJoinAndSelect('orderItem.product', 'product')
       .addSelect(['product.id', 'product.name', 'product.subcategory'])
       .leftJoinAndSelect('product.subcategory', 'subcategory')
       .addSelect(['subcategory.id', 'subcategory.category'])
       .leftJoinAndSelect('subcategory.category', 'category')
       .addSelect(['category.id', 'category.name'])
-      .leftJoinAndSelect('orderItem.selectedProductObservations', 'selectedProductObservation')
+      .leftJoinAndSelect(
+        'orderItem.selectedProductObservations',
+        'selectedProductObservation',
+      )
       .addSelect(['selectedProductObservation.id'])
-      .leftJoinAndSelect('selectedProductObservation.productObservation', 'selectedProductObservationDetail')
-      .addSelect(['selectedProductObservationDetail.id', 'selectedProductObservationDetail.name'])
+      .leftJoinAndSelect(
+        'selectedProductObservation.productObservation',
+        'selectedProductObservationDetail',
+      )
+      .addSelect([
+        'selectedProductObservationDetail.id',
+        'selectedProductObservationDetail.name',
+      ])
       .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifier')
       .addSelect(['selectedModifier.id'])
       .leftJoinAndSelect('selectedModifier.modifier', 'selectedModifierDetail')
-      .addSelect(['selectedModifierDetail.id', 'selectedModifierDetail.name', 'selectedModifierDetail.price'])
-      .leftJoinAndSelect('orderItem.selectedPizzaFlavors', 'selectedPizzaFlavor')
+      .addSelect([
+        'selectedModifierDetail.id',
+        'selectedModifierDetail.name',
+        'selectedModifierDetail.price',
+      ])
+      .leftJoinAndSelect(
+        'orderItem.selectedPizzaFlavors',
+        'selectedPizzaFlavor',
+      )
       .addSelect(['selectedPizzaFlavor.id'])
-      .leftJoinAndSelect('selectedPizzaFlavor.pizzaFlavor', 'selectedPizzaFlavorDetail')
-      .addSelect(['selectedPizzaFlavorDetail.id', 'selectedPizzaFlavorDetail.name', 'selectedPizzaFlavorDetail.price'])
-      .leftJoinAndSelect('orderItem.selectedPizzaIngredients', 'selectedPizzaIngredient')
+      .leftJoinAndSelect(
+        'selectedPizzaFlavor.pizzaFlavor',
+        'selectedPizzaFlavorDetail',
+      )
+      .addSelect([
+        'selectedPizzaFlavorDetail.id',
+        'selectedPizzaFlavorDetail.name',
+        'selectedPizzaFlavorDetail.price',
+      ])
+      .leftJoinAndSelect(
+        'orderItem.selectedPizzaIngredients',
+        'selectedPizzaIngredient',
+      )
       .addSelect(['selectedPizzaIngredient.id, selectedPizzaIngredient.half'])
-      .leftJoinAndSelect('selectedPizzaIngredient.pizzaIngredient', 'selectedPizzaIngredientDetail')
-      .addSelect(['selectedPizzaIngredientDetail.id', 'selectedPizzaIngredientDetail.name', 'selectedPizzaIngredientDetail.price'])
+      .leftJoinAndSelect(
+        'selectedPizzaIngredient.pizzaIngredient',
+        'selectedPizzaIngredientDetail',
+      )
+      .addSelect([
+        'selectedPizzaIngredientDetail.id',
+        'selectedPizzaIngredientDetail.name',
+        'selectedPizzaIngredientDetail.price',
+      ])
       .leftJoinAndSelect('order.orderAdjustments', 'orderAdjustment')
-      .addSelect(['orderAdjustment.id', 'orderAdjustment.name', 'orderAdjustment.amount']);
-  
+      .addSelect([
+        'orderAdjustment.id',
+        'orderAdjustment.name',
+        'orderAdjustment.amount',
+      ]);
+
     return await queryBuilder.getMany();
   }
 
   async markOrdersAsInDelivery(orders: Order[]): Promise<void> {
-    await this.orderRepository.manager.transaction(async (transactionalEntityManager) => {
-      for (const orderData of orders) {
-        // Recupera la instancia de la entidad Order antes de modificarla
-        const order = await transactionalEntityManager.findOne(Order, {
-          where: { id: orderData.id }
-        });
-        if (order) {
-          order.status = OrderStatus.in_delivery;
-          await transactionalEntityManager.save(order);
-        } else {
-          console.error(`Orden no encontrada con ID: ${orderData.id}`);
+    await this.orderRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        for (const orderData of orders) {
+          // Recupera la instancia de la entidad Order antes de modificarla
+          const order = await transactionalEntityManager.findOne(Order, {
+            where: { id: orderData.id },
+          });
+          if (order) {
+            order.status = OrderStatus.in_delivery;
+            await transactionalEntityManager.save(order);
+          } else {
+            console.error(`Orden no encontrada con ID: ${orderData.id}`);
+          }
         }
-      }
-    });
+      },
+    );
 
     // Emitir a las pantallas después de actualizar el estado de las ordenes
     await this.appGateway.emitPendingOrderItemsToScreens();
@@ -1313,19 +1564,25 @@ async findOrderItemsWithCounts(
   private async getNextOrderNumber(date: Date): Promise<number> {
     return await this.orderCounterRepository.manager.transaction(
       async (transactionalEntityManager) => {
-        const orderCounter = await transactionalEntityManager.findOne(OrderCounter, {
-          where: { date },
-        });
+        const orderCounter = await transactionalEntityManager.findOne(
+          OrderCounter,
+          {
+            where: { date },
+          },
+        );
 
         if (orderCounter) {
           orderCounter.counter++;
           await transactionalEntityManager.save(orderCounter);
           return orderCounter.counter;
         } else {
-          const newOrderCounter = transactionalEntityManager.create(OrderCounter, {
-            date,
-            counter: 1,
-          });
+          const newOrderCounter = transactionalEntityManager.create(
+            OrderCounter,
+            {
+              date,
+              counter: 1,
+            },
+          );
           await transactionalEntityManager.save(newOrderCounter);
           return 1;
         }
@@ -1333,7 +1590,9 @@ async findOrderItemsWithCounts(
     );
   }
 
-  async getDeliveryPreparedOrders(): Promise<{ id: number; orderType: string; totalCost: number }[]> {
+  async getDeliveryPreparedOrders(): Promise<
+    { id: number; orderType: string; totalCost: number }[]
+  > {
     const orders = await this.orderRepository.find({
       where: {
         status: OrderStatus.prepared,
@@ -1341,7 +1600,7 @@ async findOrderItemsWithCounts(
       },
       select: ['id', 'orderType', 'totalCost'],
     });
-  
+
     return orders.map(({ id, orderType, totalCost }) => ({
       id,
       orderType,
@@ -1353,36 +1612,47 @@ async findOrderItemsWithCounts(
     return await this.orderRepository.manager.transaction(
       async (transactionalEntityManager) => {
         const order = await transactionalEntityManager.findOne(Order, {
-          where: { id: orderId, status: OrderStatus.prepared, orderType: OrderType.delivery },
+          where: {
+            id: orderId,
+            status: OrderStatus.prepared,
+            orderType: OrderType.delivery,
+          },
         });
-  
+
         if (!order) {
-          throw new HttpException('Order not found or not in prepared state or not a delivery order', HttpStatus.NOT_FOUND);
+          throw new HttpException(
+            'Order not found or not in prepared state or not a delivery order',
+            HttpStatus.NOT_FOUND,
+          );
         }
-  
+
         order.status = OrderStatus.in_delivery;
         await transactionalEntityManager.save(order);
-  
+
         return order;
-      }
+      },
     );
   }
 
   async registerPrint(orderId: number, printedBy: string): Promise<OrderPrint> {
-    return await this.orderRepository.manager.transaction(async transactionalEntityManager => {
-      const order = await transactionalEntityManager.findOne(Order, { where: { id: orderId } });
-      if (!order) {
-        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
-      }
-  
-      const orderPrint = new OrderPrint();
-      orderPrint.order = order;
-      orderPrint.printedBy = printedBy;
-      orderPrint.printTime = new Date(); // Captura el momento exacto de la impresión
-  
-      await transactionalEntityManager.save(orderPrint);
-      return orderPrint;
-    });
+    return await this.orderRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const order = await transactionalEntityManager.findOne(Order, {
+          where: { id: orderId },
+        });
+        if (!order) {
+          throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+        }
+
+        const orderPrint = new OrderPrint();
+        orderPrint.order = order;
+        orderPrint.printedBy = printedBy;
+        orderPrint.printTime = new Date(); // Captura el momento exacto de la impresión
+
+        await transactionalEntityManager.save(orderPrint);
+        return orderPrint;
+      },
+    );
   }
   async getOrdersWithPrints(): Promise<Order[]> {
     const orders = await this.orderRepository
@@ -1390,17 +1660,29 @@ async findOrderItemsWithCounts(
       .innerJoinAndSelect('order.orderPrints', 'orderPrint')
       .leftJoinAndSelect('order.area', 'area')
       .leftJoinAndSelect('order.table', 'table')
-      .where('order.status IN (:...statuses)', { 
-        statuses: [OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared]
+      .where('order.status IN (:...statuses)', {
+        statuses: [
+          OrderStatus.created,
+          OrderStatus.in_preparation,
+          OrderStatus.prepared,
+        ],
       })
       .andWhere('order.orderType = :orderType', { orderType: OrderType.dineIn })
       .orderBy('order.creationDate', 'DESC')
       .getMany();
-  
+
     return orders;
   }
 
-  async getSalesReport(): Promise<{ totalSales: number; totalAmountPaid: number; subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] }> {
+  async getSalesReport(): Promise<{
+    totalSales: number;
+    totalAmountPaid: number;
+    subcategories: {
+      subcategoryName: string;
+      totalSales: number;
+      products: { name: string; quantity: number; totalSales: number }[];
+    }[];
+  }> {
     const finishedOrders = await this.orderRepository.find({
       where: {
         status: OrderStatus.finished,
@@ -1412,25 +1694,28 @@ async findOrderItemsWithCounts(
         'orderItems.productVariant',
       ],
     });
-  
+
     let totalSales = 0;
     let totalAmountPaid = 0;
-  
-    const subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] = [];
-  
+
+    const subcategories: {
+      subcategoryName: string;
+      totalSales: number;
+      products: { name: string; quantity: number; totalSales: number }[];
+    }[] = [];
+
     for (const order of finishedOrders) {
-      totalAmountPaid += parseFloat(order.amountPaid.toString())
-  
-  
+      totalAmountPaid += parseFloat(order.amountPaid.toString());
+
       for (const orderItem of order.orderItems) {
         const productName = orderItem.productVariant
           ? `${orderItem.product.name} - ${orderItem.productVariant.name}`
           : orderItem.product.name;
         const subcategoryName = orderItem.product.subcategory.name;
         const itemPrice = parseFloat(orderItem.price.toString()); // Convertir a número
-  
+
         const subcategoryIndex = subcategories.findIndex(
-          (item) => item.subcategoryName === subcategoryName
+          (item) => item.subcategoryName === subcategoryName,
         );
         if (subcategoryIndex === -1) {
           subcategories.push({
@@ -1445,9 +1730,9 @@ async findOrderItemsWithCounts(
             ],
           });
         } else {
-          const productIndex = subcategories[subcategoryIndex].products.findIndex(
-            (product) => product.name === productName
-          );
+          const productIndex = subcategories[
+            subcategoryIndex
+          ].products.findIndex((product) => product.name === productName);
           if (productIndex === -1) {
             subcategories[subcategoryIndex].products.push({
               name: productName,
@@ -1456,43 +1741,49 @@ async findOrderItemsWithCounts(
             });
             subcategories[subcategoryIndex].totalSales += itemPrice; // Sumar el valor numérico
           } else {
-            subcategories[subcategoryIndex].products[productIndex].quantity += 1;
-            subcategories[subcategoryIndex].products[productIndex].totalSales += itemPrice; // Sumar el valor numérico
+            subcategories[subcategoryIndex].products[productIndex].quantity +=
+              1;
+            subcategories[subcategoryIndex].products[productIndex].totalSales +=
+              itemPrice; // Sumar el valor numérico
             subcategories[subcategoryIndex].totalSales += itemPrice; // Sumar el valor numérico
           }
         }
-  
+
         totalSales += itemPrice; // Sumar el valor numérico
       }
     }
 
+    return {
+      totalSales,
+      totalAmountPaid,
+      subcategories,
+    };
+  }
 
-  return {
-    totalSales,
-    totalAmountPaid,
-    subcategories,
-  };
-}
+  async revertMultipleOrdersToPrepared(orderIds: number[]): Promise<Order[]> {
+    return await this.orderRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const orders = await transactionalEntityManager
+          .createQueryBuilder(Order, 'order')
+          .where('order.id IN (:...orderIds)', { orderIds })
+          .getMany();
 
-async revertMultipleOrdersToPrepared(orderIds: number[]): Promise<Order[]> {
-  return await this.orderRepository.manager.transaction(async (transactionalEntityManager) => {
-    const orders = await transactionalEntityManager
-      .createQueryBuilder(Order, 'order')
-      .where('order.id IN (:...orderIds)', { orderIds })
-      .getMany();
+        if (orders.length !== orderIds.length) {
+          throw new HttpException(
+            'Some orders not found or not in delivery state',
+            HttpStatus.NOT_FOUND,
+          );
+        }
 
-    if (orders.length !== orderIds.length) {
-      throw new HttpException('Some orders not found or not in delivery state', HttpStatus.NOT_FOUND);
-    }
+        orders.forEach((order) => {
+          order.status = OrderStatus.prepared;
+        });
 
-    orders.forEach(order => {
-      order.status = OrderStatus.prepared;
-    });
-
-    await transactionalEntityManager.save(orders);
-    return orders;
-  });
-}
+        await transactionalEntityManager.save(orders);
+        return orders;
+      },
+    );
+  }
 
   async resetDatabase(): Promise<void> {
     try {
@@ -1515,7 +1806,10 @@ async revertMultipleOrdersToPrepared(orderIds: number[]): Promise<Order[]> {
       // Opcional: Reiniciar el servidor, esto depende de tu entorno específico
       // Esto podría implicar llamar a un script externo o usar un módulo de Node.js para reiniciar el proceso
     } catch (error) {
-      throw new Error('Error al resetear la base de datos y ejecutar seeders: ' + error.message);
+      throw new Error(
+        'Error al resetear la base de datos y ejecutar seeders: ' +
+          error.message,
+      );
     }
   }
 
@@ -1545,5 +1839,49 @@ async revertMultipleOrdersToPrepared(orderIds: number[]): Promise<Order[]> {
 
     return savedOrderItem;
   }
-  
+
+  @Interval(60000) // Ejecutar cada 60 segundos
+  async syncOrders() {
+    try {
+      const response = await axios.get(this.syncOrdersUrl);
+      console.log('response', response);
+      const newOrders = response.data;
+
+      for (const newOrder of newOrders) {
+        //await this.syncOrder(newOrder);
+      }
+    } catch (error) {
+      console.error('Error syncing orders:', error);
+    }
+  }
+
+  // private async syncOrder(newOrder: any) {
+  //   const existingOrder = await this.orderRepository.findOne({
+  //     where: { externalId: newOrder.id },
+  //   });
+
+  //   if (existingOrder) {
+  //     // Actualizar orden existente
+  //     await this.updateOrder(existingOrder.id, newOrder);
+  //   } else {
+  //     // Crear nueva orden
+  //     await this.createOrder(this.mapExternalOrderToCreateOrderDto(newOrder));
+  //   }
+  // }
+
+  // private mapExternalOrderToCreateOrderDto(externalOrder: any): CreateOrderDto {
+  //   // Implementa la lógica para mapear la orden externa a CreateOrderDto
+  //   // Este es solo un ejemplo, ajusta según tu estructura de datos
+  //   return {
+  //     externalId: externalOrder.id,
+  //     orderType: externalOrder.type,
+  //     totalCost: externalOrder.total,
+  //     // ... mapea otros campos ...
+  //     orderItems: externalOrder.items.map((item) => ({
+  //       product: { id: item.productId },
+  //       quantity: item.quantity,
+  //       // ... mapea otros campos de orderItems ...
+  //     })),
+  //   };
+  // }
 }
