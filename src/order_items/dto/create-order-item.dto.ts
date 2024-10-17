@@ -11,7 +11,6 @@ import { Modifier } from 'src/modifiers/modifier.entity';
 import { Order } from 'src/orders/order.entity';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
-import { ProductObservation } from 'src/product_observations/product-observation.entity';
 import { ProductVariant } from 'src/product_variants/product-variant.entity';
 import { Product } from 'src/products/product.entity';
 import { PizzaHalf } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
@@ -21,11 +20,6 @@ import { OrderItemStatus } from '../order-item.entity';
 export class SelectedModifierDto {
   @IsOptional()
   modifier?: Modifier;
-}
-
-export class SelectedProductObservationDto {
-  @IsNotEmpty()
-  productObservation: ProductObservation;
 }
 
 export class SelectedPizzaFlavorDto {
@@ -52,8 +46,7 @@ export class CreateOrderItemDto {
   order: Order;
 
   @IsOptional()
-  status: OrderItemStatus
-
+  status: OrderItemStatus;
 
   @IsOptional()
   productVariant?: ProductVariant;
@@ -66,12 +59,6 @@ export class CreateOrderItemDto {
   @ValidateNested({ each: true })
   @Type(() => SelectedModifierDto)
   selectedModifiers?: SelectedModifierDto[];
-
-  @IsArray()
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => SelectedProductObservationDto)
-  selectedProductObservations?: SelectedProductObservationDto[];
 
   @IsArray()
   @IsOptional()

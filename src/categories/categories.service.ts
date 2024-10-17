@@ -23,17 +23,15 @@ export class CategoriesService {
           'subcategories.products.productVariants',
           'subcategories.products.modifierTypes',
           'subcategories.products.modifierTypes.modifiers',
-          'subcategories.products.productObservationTypes',
-          'subcategories.products.productObservationTypes.productObservations',
           'subcategories.products.pizzaFlavors',
           'subcategories.products.pizzaIngredients',
         ],
       });
-  
+
       // Ordenar pizzaFlavors y pizzaIngredients por ID de forma ascendente después de la carga
-      categories.forEach(category => {
-        category.subcategories.forEach(subcategory => {
-          subcategory.products.forEach(product => {
+      categories.forEach((category) => {
+        category.subcategories.forEach((subcategory) => {
+          subcategory.products.forEach((product) => {
             if (product.pizzaFlavors) {
               product.pizzaFlavors.sort((a, b) => a.id - b.id);
             }
@@ -43,7 +41,7 @@ export class CategoriesService {
           });
         });
       });
-  
+
       return categories;
     } catch (error) {
       throw new HttpException(

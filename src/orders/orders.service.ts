@@ -414,13 +414,6 @@ export class OrdersService {
           await transactionalEntityManager
             .createQueryBuilder()
             .delete()
-            .from('selected_product_observations')
-            .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
-            .execute();
-
-          await transactionalEntityManager
-            .createQueryBuilder()
-            .delete()
             .from('selected_modifiers')
             .where('orderItemId IN (:...ids)', { ids: itemsToDelete })
             .execute();
@@ -610,7 +603,6 @@ export class OrdersService {
       relations: [
         'productVariant',
         'selectedModifiers',
-        'selectedProductObservations',
         'selectedPizzaFlavors',
         'selectedPizzaIngredients',
         'selectedPizzaIngredients.pizzaIngredient',
@@ -646,10 +638,6 @@ export class OrdersService {
       compareArrays(
         existingItem.selectedModifiers,
         itemDto.selectedModifiers,
-      ) ||
-      compareArrays(
-        existingItem.selectedProductObservations,
-        itemDto.selectedProductObservations,
       ) ||
       compareArrays(
         existingItem.selectedPizzaFlavors,
@@ -720,19 +708,6 @@ export class OrdersService {
       ])
       .leftJoinAndSelect('orderItem.product', 'product')
       .addSelect(['product.id'])
-      .leftJoinAndSelect(
-        'orderItem.selectedProductObservations',
-        'selectedProductObservation',
-      )
-      .addSelect(['selectedProductObservation.id'])
-      .leftJoinAndSelect(
-        'selectedProductObservation.productObservation',
-        'selectedProductObservationDetail',
-      )
-      .addSelect([
-        'selectedProductObservationDetail.id',
-        'selectedProductObservationDetail.name',
-      ])
       .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifier')
       .addSelect(['selectedModifier.id'])
       .leftJoinAndSelect('selectedModifier.modifier', 'selectedModifierDetail')
@@ -823,19 +798,6 @@ export class OrdersService {
       ])
       .leftJoinAndSelect('orderItem.product', 'product')
       .addSelect(['product.id'])
-      .leftJoinAndSelect(
-        'orderItem.selectedProductObservations',
-        'selectedProductObservation',
-      )
-      .addSelect(['selectedProductObservation.id'])
-      .leftJoinAndSelect(
-        'selectedProductObservation.productObservation',
-        'selectedProductObservationDetail',
-      )
-      .addSelect([
-        'selectedProductObservationDetail.id',
-        'selectedProductObservationDetail.name',
-      ])
       .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifier')
       .addSelect(['selectedModifier.id'])
       .leftJoinAndSelect('selectedModifier.modifier', 'selectedModifierDetail')
@@ -1480,19 +1442,6 @@ export class OrdersService {
       .addSelect(['subcategory.id', 'subcategory.category'])
       .leftJoinAndSelect('subcategory.category', 'category')
       .addSelect(['category.id', 'category.name'])
-      .leftJoinAndSelect(
-        'orderItem.selectedProductObservations',
-        'selectedProductObservation',
-      )
-      .addSelect(['selectedProductObservation.id'])
-      .leftJoinAndSelect(
-        'selectedProductObservation.productObservation',
-        'selectedProductObservationDetail',
-      )
-      .addSelect([
-        'selectedProductObservationDetail.id',
-        'selectedProductObservationDetail.name',
-      ])
       .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifier')
       .addSelect(['selectedModifier.id'])
       .leftJoinAndSelect('selectedModifier.modifier', 'selectedModifierDetail')

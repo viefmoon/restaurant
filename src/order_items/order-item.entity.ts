@@ -10,7 +10,6 @@ import { Order } from '../orders/order.entity';
 import { Product } from '../products/product.entity';
 import { ProductVariant } from '../product_variants/product-variant.entity';
 import { SelectedModifier } from '../selected_modifiers/selected-modifier.entity';
-import { SelectedProductObservation } from '../selected_product_observations/selected-product-observation.entity';
 import { OrderItemUpdate } from '../order_item_updates/order-item-update.entity';
 import { SelectedPizzaFlavor } from 'src/selected_pizza_flavors/selected-pizza-flavor.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
@@ -19,7 +18,7 @@ export enum OrderItemStatus {
   created = 'created',
   in_preparation = 'in_preparation',
   prepared = 'prepared',
-} 
+}
 
 @Entity({ name: 'order_items' })
 export class OrderItem {
@@ -64,13 +63,6 @@ export class OrderItem {
     { nullable: true },
   )
   selectedModifiers: SelectedModifier[];
-
-  @OneToMany(
-    () => SelectedProductObservation,
-    (selectedProductObservation) => selectedProductObservation.orderItem,
-    { nullable: true },
-  )
-  selectedProductObservations: SelectedProductObservation[];
 
   @OneToMany(
     () => SelectedPizzaFlavor,

@@ -1,44 +1,49 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
-import { Subcategory } from '../subcategories/subcategory.entity'
-import { ProductVariant } from '../product_variants/product-variant.entity'
-import { ModifierType } from '../modifier_types/modifier-type.entity'
-import { ProductObservationType } from '../product_observation_types/product-observation-type.entity'
-import { OrderItem } from '../order_items/order-item.entity'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  PrimaryColumn,
+} from 'typeorm';
+import { Subcategory } from '../subcategories/subcategory.entity';
+import { ProductVariant } from '../product_variants/product-variant.entity';
+import { ModifierType } from '../modifier_types/modifier-type.entity';
+import { OrderItem } from '../order_items/order-item.entity';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
-
 @Entity({ name: 'products' })
 export class Product {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryColumn()
+  id: string;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-    price: number | null;
-    
-    @Column({ nullable: true })
-    imageUrl: string | null;
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price: number | null;
 
-    @ManyToOne(() => Subcategory, subcategory => subcategory.products)
-    subcategory: Subcategory;
+  @Column({ nullable: true })
+  imageUrl: string | null;
 
-    @OneToMany(() => ProductVariant, productVariant => productVariant.product)
-    productVariants: ProductVariant[];
-    
-    @OneToMany(() => ModifierType, modifierType => modifierType.product)
-    modifierTypes: ModifierType[];
+  @ManyToOne(() => Subcategory, (subcategory) => subcategory.products)
+  subcategory: Subcategory;
 
-    @OneToMany(() => ProductObservationType, productObservationType => productObservationType.product)
-    productObservationTypes: ProductObservationType[];
-    
-    @OneToMany(() => PizzaFlavor, pizzaFlavor => pizzaFlavor.product)
-    pizzaFlavors: PizzaFlavor[];
+  @OneToMany(() => ProductVariant, (productVariant) => productVariant.product)
+  productVariants: ProductVariant[];
 
-    @OneToMany(() => PizzaIngredient, pizzaIngredient => pizzaIngredient.product)
-    pizzaIngredients: PizzaIngredient[];
+  @OneToMany(() => ModifierType, (modifierType) => modifierType.product)
+  modifierTypes: ModifierType[];
 
-    @OneToMany(() => OrderItem, orderItem => orderItem.product)
-    orderItems: OrderItem[];
+  @OneToMany(() => PizzaFlavor, (pizzaFlavor) => pizzaFlavor.product)
+  pizzaFlavors: PizzaFlavor[];
+
+  @OneToMany(
+    () => PizzaIngredient,
+    (pizzaIngredient) => pizzaIngredient.product,
+  )
+  pizzaIngredients: PizzaIngredient[];
+
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
+  orderItems: OrderItem[];
 }

@@ -3,9 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { OrderItem, OrderItemStatus } from './order-item.entity';
 import { SelectedModifier } from 'src/selected_modifiers/selected-modifier.entity';
-import { SelectedProductObservation } from 'src/selected_product_observations/selected-product-observation.entity';
 import { Modifier } from 'src/modifiers/modifier.entity';
-import { ProductObservation } from 'src/product_observations/product-observation.entity';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { Order } from 'src/orders/order.entity';
 import { Product } from 'src/products/product.entity';
@@ -24,12 +22,8 @@ export class OrderItemsService {
     private readonly orderItemRepository: Repository<OrderItem>,
     @InjectRepository(SelectedModifier)
     private readonly selectedModifierRepository: Repository<SelectedModifier>,
-    @InjectRepository(SelectedProductObservation)
-    private readonly selectedProductObservationRepository: Repository<SelectedProductObservation>,
     @InjectRepository(Modifier)
     private readonly modifierRepository: Repository<Modifier>,
-    @InjectRepository(ProductObservation)
-    private readonly productObservationRepository: Repository<ProductObservation>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(Product)
@@ -47,8 +41,13 @@ export class OrderItemsService {
     private appGateway: AppGateway, // Inject AppGateway
   ) {}
 
-  async create(createOrderItemDto: CreateOrderItemDto, transactionalEntityManager?: EntityManager): Promise<OrderItem> {
-    const entityManager = transactionalEntityManager ? transactionalEntityManager : this.orderItemRepository.manager;
+  async create(
+    createOrderItemDto: CreateOrderItemDto,
+    transactionalEntityManager?: EntityManager,
+  ): Promise<OrderItem> {
+    const entityManager = transactionalEntityManager
+      ? transactionalEntityManager
+      : this.orderItemRepository.manager;
 
     const order = await entityManager.findOne(Order, {
       where: { id: createOrderItemDto.order.id },
@@ -67,7 +66,12 @@ export class OrderItemsService {
     let canBePreparedInAdvance = false;
     if (product.subcategory.name === 'Entradas') {
       canBePreparedInAdvance = true;
-    } else if (productVariant && ['Pizza Mediana C/R', 'Pizza Chica C/R', 'Pizza Grande C/R'].includes(productVariant.name)) {
+    } else if (
+      productVariant &&
+      ['Pizza Mediana C/R', 'Pizza Chica C/R', 'Pizza Grande C/R'].includes(
+        productVariant.name,
+      )
+    ) {
       canBePreparedInAdvance = true;
     }
 
@@ -77,7 +81,7 @@ export class OrderItemsService {
       productVariant: productVariant,
       comments: createOrderItemDto.comments,
       price: createOrderItemDto.price,
-      canBePreparedInAdvance: canBePreparedInAdvance
+      canBePreparedInAdvance: canBePreparedInAdvance,
     });
 
     const savedOrderItem = await entityManager.save(orderItem);
@@ -98,24 +102,6 @@ export class OrderItemsService {
       }
     }
 
-    // Procesar selectedProductObservations
-    if (createOrderItemDto.selectedProductObservations?.length) {
-      for (const observationDto of createOrderItemDto.selectedProductObservations) {
-        const productObservation =
-          await entityManager.findOne(ProductObservation, {
-            where: { id: observationDto.productObservation.id },
-          });
-        if (productObservation) {
-          const selectedProductObservation =
-            entityManager.create(SelectedProductObservation, {
-              orderItem: savedOrderItem,
-              productObservation: productObservation,
-            });
-          await entityManager.save(selectedProductObservation);
-        }
-      }
-    }
-
     // Procesar selectedPizzaFlavors
     if (createOrderItemDto.selectedPizzaFlavors?.length) {
       for (const flavorDto of createOrderItemDto.selectedPizzaFlavors) {
@@ -123,10 +109,13 @@ export class OrderItemsService {
           where: { id: flavorDto.pizzaFlavor.id },
         });
         if (pizzaFlavor) {
-          const selectedPizzaFlavor = entityManager.create(SelectedPizzaFlavor, {
-            orderItem: savedOrderItem,
-            pizzaFlavor: pizzaFlavor,
-          });
+          const selectedPizzaFlavor = entityManager.create(
+            SelectedPizzaFlavor,
+            {
+              orderItem: savedOrderItem,
+              pizzaFlavor: pizzaFlavor,
+            },
+          );
           await entityManager.save(selectedPizzaFlavor);
         }
       }
@@ -139,12 +128,14 @@ export class OrderItemsService {
           where: { id: ingredientDto.pizzaIngredient.id },
         });
         if (pizzaIngredient) {
-          const selectedPizzaIngredient =
-            entityManager.create(SelectedPizzaIngredient, {
+          const selectedPizzaIngredient = entityManager.create(
+            SelectedPizzaIngredient,
+            {
               orderItem: savedOrderItem,
               pizzaIngredient: pizzaIngredient,
               half: ingredientDto.half,
-            });
+            },
+          );
           await entityManager.save(selectedPizzaIngredient);
         }
       }
@@ -154,7 +145,6 @@ export class OrderItemsService {
       relations: [
         'order',
         'selectedModifiers',
-        'selectedProductObservations',
         'selectedPizzaFlavors',
         'selectedPizzaIngredients',
         'product',
@@ -162,7 +152,6 @@ export class OrderItemsService {
         'product.subcategory.category',
         'product.productVariants',
         'product.modifierTypes',
-        'product.productObservationTypes',
         'product.pizzaFlavors',
         'product.pizzaIngredients',
       ],
@@ -174,45 +163,53 @@ export class OrderItemsService {
     updateOrderItemDto: UpdateOrderItemDto,
     transactionalEntityManager?: EntityManager,
   ): Promise<OrderItem> {
-    const entityManager = transactionalEntityManager ? transactionalEntityManager : this.orderItemRepository.manager;
-  
+    const entityManager = transactionalEntityManager
+      ? transactionalEntityManager
+      : this.orderItemRepository.manager;
+
     const orderItem = await entityManager.findOne(OrderItem, {
       where: { id: orderItemId },
       relations: [
         'selectedModifiers',
-        'selectedProductObservations',
         'selectedPizzaFlavors',
         'selectedPizzaIngredients',
         'product',
         'product.subcategory',
       ],
     });
-  
+
     if (orderItem.status === OrderItemStatus.prepared) {
-      throw new Error('No se permiten actualizaciones a un OrderItem con estado "prepared"');
+      throw new Error(
+        'No se permiten actualizaciones a un OrderItem con estado "prepared"',
+      );
     }
-  
+
     const productVariant = updateOrderItemDto.productVariant
       ? await entityManager.findOne(ProductVariant, {
           where: { id: updateOrderItemDto.productVariant.id },
         })
       : orderItem.productVariant;
-  
+
     // Determinar si el item puede ser preparado con anticipación
     let canBePreparedInAdvance = false;
     if (orderItem.product.subcategory.name === 'Entradas') {
       canBePreparedInAdvance = true;
-    } else if (productVariant && ['Pizza Mediana C/R', 'Pizza Chica C/R', 'Pizza Grande C/R'].includes(productVariant.name)) {
+    } else if (
+      productVariant &&
+      ['Pizza Mediana C/R', 'Pizza Chica C/R', 'Pizza Grande C/R'].includes(
+        productVariant.name,
+      )
+    ) {
       canBePreparedInAdvance = true;
     }
-  
+
     orderItem.productVariant = productVariant;
     orderItem.comments = updateOrderItemDto.comments ?? orderItem.comments;
     orderItem.price = updateOrderItemDto.price ?? orderItem.price;
     orderItem.canBePreparedInAdvance = canBePreparedInAdvance;
-  
+
     await entityManager.save(orderItem);
-  
+
     // Actualizar selectedModifiers
     await entityManager.delete(SelectedModifier, {
       orderItem: { id: orderItemId },
@@ -231,28 +228,7 @@ export class OrderItemsService {
         }
       }
     }
-  
-    // Actualizar selectedProductObservations
-    await entityManager.delete(SelectedProductObservation, {
-      orderItem: { id: orderItemId },
-    });
-    if (updateOrderItemDto.selectedProductObservations?.length) {
-      for (const observationDto of updateOrderItemDto.selectedProductObservations) {
-        const productObservation =
-          await entityManager.findOne(ProductObservation, {
-            where: { id: observationDto.productObservation.id },
-          });
-        if (productObservation) {
-          const selectedProductObservation =
-            entityManager.create(SelectedProductObservation, {
-              orderItem: orderItem,
-              productObservation: productObservation,
-            });
-          await entityManager.save(selectedProductObservation);
-        }
-      }
-    }
-  
+
     // Actualizar selectedPizzaFlavors
     await entityManager.delete(SelectedPizzaFlavor, {
       orderItem: { id: orderItemId },
@@ -263,15 +239,18 @@ export class OrderItemsService {
           where: { id: flavorDto.pizzaFlavor.id },
         });
         if (pizzaFlavor) {
-          const selectedPizzaFlavor = entityManager.create(SelectedPizzaFlavor, {
-            orderItem: orderItem,
-            pizzaFlavor: pizzaFlavor,
-          });
+          const selectedPizzaFlavor = entityManager.create(
+            SelectedPizzaFlavor,
+            {
+              orderItem: orderItem,
+              pizzaFlavor: pizzaFlavor,
+            },
+          );
           await entityManager.save(selectedPizzaFlavor);
         }
       }
     }
-  
+
     // Actualizar selectedPizzaIngredients
     await entityManager.delete(SelectedPizzaIngredient, {
       orderItem: { id: orderItemId },
@@ -282,37 +261,36 @@ export class OrderItemsService {
           where: { id: ingredientDto.pizzaIngredient.id },
         });
         if (pizzaIngredient) {
-          const selectedPizzaIngredient =
-            entityManager.create(SelectedPizzaIngredient, {
+          const selectedPizzaIngredient = entityManager.create(
+            SelectedPizzaIngredient,
+            {
               orderItem: orderItem,
               pizzaIngredient: pizzaIngredient,
               half: ingredientDto.half,
-            });
-            await entityManager.save(selectedPizzaIngredient);
-          }
+            },
+          );
+          await entityManager.save(selectedPizzaIngredient);
         }
       }
-  
-      return entityManager.findOne(OrderItem, {
-        where: { id: orderItemId },
-        relations: [
-          'selectedModifiers',
-          'selectedModifiers.modifier',
-          'selectedProductObservations',
-          'selectedProductObservations.productObservation',
-          'selectedPizzaFlavors',
-          'selectedPizzaFlavors.pizzaFlavor',
-          'selectedPizzaIngredients',
-          'selectedPizzaIngredients.pizzaIngredient',
-          'product',
-          'product.subcategory',
-          'product.subcategory.category',
-          'product.productVariants',
-          'product.modifierTypes',
-          'product.productObservationTypes',
-          'product.pizzaFlavors',
-          'product.pizzaIngredients',
-        ],
-      });
     }
+
+    return entityManager.findOne(OrderItem, {
+      where: { id: orderItemId },
+      relations: [
+        'selectedModifiers',
+        'selectedModifiers.modifier',
+        'selectedPizzaFlavors',
+        'selectedPizzaFlavors.pizzaFlavor',
+        'selectedPizzaIngredients',
+        'selectedPizzaIngredients.pizzaIngredient',
+        'product',
+        'product.subcategory',
+        'product.subcategory.category',
+        'product.productVariants',
+        'product.modifierTypes',
+        'product.pizzaFlavors',
+        'product.pizzaIngredients',
+      ],
+    });
+  }
 }

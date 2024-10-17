@@ -11,7 +11,6 @@ import { Order, OrderStatus } from './orders/order.entity';
 import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-
 @WebSocketGateway()
 export class AppGateway {
   constructor(
@@ -169,47 +168,48 @@ export class AppGateway {
     orderItemId: number,
     isBeingPreparedInAdvance: boolean,
   ): Promise<void> {
-
-    this.server.to('pizzaScreen').emit('orderItemPreparationAdvanceStatusUpdated', {
-      messageType: 'orderItemPreparationAdvanceStatusUpdated',
-      orderId: order.id,
-      orderItemId: orderItemId,
-      isBeingPreparedInAdvance: isBeingPreparedInAdvance,
-    });
-  
+    this.server
+      .to('pizzaScreen')
+      .emit('orderItemPreparationAdvanceStatusUpdated', {
+        messageType: 'orderItemPreparationAdvanceStatusUpdated',
+        orderId: order.id,
+        orderItemId: orderItemId,
+        isBeingPreparedInAdvance: isBeingPreparedInAdvance,
+      });
   }
 
   async emitPendingOrderItemsToScreens(): Promise<void> {
     const pendingOrders = await this.getPendingOrders();
-  
+
     let allDataForPizzaScreen = [];
     let allDataForBurgerScreen = [];
     let allDataForBarScreen = [];
-  
+
     pendingOrders.forEach((order) => {
       const orderWithoutItems = { ...order, orderItems: undefined };
-      const { itemsForPizzaScreen, itemsForBurgerScreen, itemsForBarScreen } = this.getOrderItemsByScreen(order);
-  
+      const { itemsForPizzaScreen, itemsForBurgerScreen, itemsForBarScreen } =
+        this.getOrderItemsByScreen(order);
+
       if (itemsForPizzaScreen.length > 0) {
         allDataForPizzaScreen.push({
           order: orderWithoutItems,
-          orderItems: itemsForPizzaScreen
+          orderItems: itemsForPizzaScreen,
         });
       }
       if (itemsForBurgerScreen.length > 0) {
         allDataForBurgerScreen.push({
           order: orderWithoutItems,
-          orderItems: itemsForBurgerScreen
+          orderItems: itemsForBurgerScreen,
         });
       }
       if (itemsForBarScreen.length > 0) {
         allDataForBarScreen.push({
           order: orderWithoutItems,
-          orderItems: itemsForBarScreen
+          orderItems: itemsForBarScreen,
         });
       }
     });
-  
+
     this.server.to('pizzaScreen').emit('synchronizationEvent', {
       messageType: 'synchronizationEvent',
       data: allDataForPizzaScreen,
@@ -306,7 +306,11 @@ export class AppGateway {
     return await this.orderRepository
       .createQueryBuilder('order')
       .where('order.status IN (:...statuses)', {
-        statuses: [OrderStatus.created, OrderStatus.in_preparation, OrderStatus.prepared],
+        statuses: [
+          OrderStatus.created,
+          OrderStatus.in_preparation,
+          OrderStatus.prepared,
+        ],
       })
       .leftJoinAndSelect('order.area', 'area')
       .leftJoinAndSelect('order.table', 'table')
@@ -320,14 +324,6 @@ export class AppGateway {
       .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
       .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifiers')
       .leftJoinAndSelect('selectedModifiers.modifier', 'modifier')
-      .leftJoinAndSelect(
-        'orderItem.selectedProductObservations',
-        'selectedProductObservations',
-      )
-      .leftJoinAndSelect(
-        'selectedProductObservations.productObservation',
-        'productObservation',
-      )
       .leftJoinAndSelect(
         'orderItem.selectedPizzaFlavors',
         'selectedPizzaFlavors',
@@ -383,9 +379,6 @@ export class AppGateway {
         'selectedModifiers.id',
         'modifier.id',
         'modifier.name',
-        'selectedProductObservations.id',
-        'productObservation.id',
-        'productObservation.name',
         'selectedPizzaFlavors.id',
         'pizzaFlavor.id',
         'pizzaFlavor.name',
@@ -396,7 +389,6 @@ export class AppGateway {
         'pizzaIngredient.ingredientValue',
       ])
       .getMany();
-      
   }
 
   private async getOrderById(orderId: number): Promise<Order | undefined> {
@@ -415,14 +407,6 @@ export class AppGateway {
       .leftJoinAndSelect('orderItem.productVariant', 'productVariant')
       .leftJoinAndSelect('orderItem.selectedModifiers', 'selectedModifiers')
       .leftJoinAndSelect('selectedModifiers.modifier', 'modifier')
-      .leftJoinAndSelect(
-        'orderItem.selectedProductObservations',
-        'selectedProductObservations',
-      )
-      .leftJoinAndSelect(
-        'selectedProductObservations.productObservation',
-        'productObservation',
-      )
       .leftJoinAndSelect(
         'orderItem.selectedPizzaFlavors',
         'selectedPizzaFlavors',
@@ -477,9 +461,6 @@ export class AppGateway {
         'selectedModifiers.id',
         'modifier.id',
         'modifier.name',
-        'selectedProductObservations.id',
-        'productObservation.id',
-        'productObservation.name',
         'selectedPizzaFlavors.id',
         'pizzaFlavor.id',
         'pizzaFlavor.name',
@@ -488,7 +469,6 @@ export class AppGateway {
         'pizzaIngredient.id',
         'pizzaIngredient.name',
         'pizzaIngredient.ingredientValue',
-
       ])
       .getOne();
   }
