@@ -1794,7 +1794,7 @@ export class OrdersService {
     try {
       const response = await axios.get(this.syncOrdersUrl);
       const newOrders = response.data;
-      console.log('newOrders', newOrders);
+      console.log('newOrders', JSON.stringify(newOrders));
 
       for (const newOrder of newOrders) {
         //await this.syncOrder(newOrder);
@@ -1803,34 +1803,4 @@ export class OrdersService {
       console.error('Error syncing orders:', error);
     }
   }
-
-  // private async syncOrder(newOrder: any) {
-  //   const existingOrder = await this.orderRepository.findOne({
-  //     where: { externalId: newOrder.id },
-  //   });
-
-  //   if (existingOrder) {
-  //     // Actualizar orden existente
-  //     await this.updateOrder(existingOrder.id, newOrder);
-  //   } else {
-  //     // Crear nueva orden
-  //     await this.createOrder(this.mapExternalOrderToCreateOrderDto(newOrder));
-  //   }
-  // }
-
-  // private mapExternalOrderToCreateOrderDto(externalOrder: any): CreateOrderDto {
-  //   // Implementa la lógica para mapear la orden externa a CreateOrderDto
-  //   // Este es solo un ejemplo, ajusta según tu estructura de datos
-  //   return {
-  //     externalId: externalOrder.id,
-  //     orderType: externalOrder.type,
-  //     totalCost: externalOrder.total,
-  //     // ... mapea otros campos ...
-  //     orderItems: externalOrder.items.map((item) => ({
-  //       product: { id: item.productId },
-  //       quantity: item.quantity,
-  //       // ... mapea otros campos de orderItems ...
-  //     })),
-  //   };
-  // }
 }
