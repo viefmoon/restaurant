@@ -1789,7 +1789,7 @@ export class OrdersService {
     return savedOrderItem;
   }
 
-  @Interval(60000) // Ejecutar cada 60 segundos
+  @Interval(10000) // Ejecutar cada 60 segundos
   async syncOrders() {
     try {
       const response = await axios.get(this.syncOrdersUrl);
