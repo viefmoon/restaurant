@@ -12,7 +12,7 @@ import { OrderItem } from 'src/order_items/order-item.entity';
 export enum PizzaHalf {
   left = 'left',
   right = 'right',
-  none = 'none',
+  full = 'full',
 }
 
 @Entity({ name: 'selected_pizza_ingredients' })
@@ -26,7 +26,7 @@ export class SelectedPizzaIngredient {
   @Column({
     type: 'enum',
     enum: PizzaHalf,
-    default: PizzaHalf.none,
+    default: PizzaHalf.full,
   })
   half: PizzaHalf;
 
