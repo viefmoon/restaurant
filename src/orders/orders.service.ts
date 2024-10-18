@@ -1393,7 +1393,7 @@ export class OrdersService {
 
     queryBuilder
       .where('order.orderType IN (:...orderTypes)', {
-        orderTypes: [OrderType.delivery, OrderType.pickUpWait],
+        orderTypes: [OrderType.delivery, OrderType.pickup],
       })
       .andWhere('order.status IN (:...statuses)', {
         statuses: [
@@ -1789,7 +1789,7 @@ export class OrdersService {
     return savedOrderItem;
   }
 
-  @Interval(30000) // Ejecutar cada 60 segundos
+  @Interval(30000) // Ejecutar cada 30 segundos
   async syncOrders() {
     try {
       const response = await axios.get(this.syncOrdersUrl);
@@ -1797,10 +1797,71 @@ export class OrdersService {
       console.log('newOrders', JSON.stringify(newOrders));
 
       for (const newOrder of newOrders) {
-        //await this.syncOrder(newOrder);
+        await this.syncOrder(newOrder);
       }
     } catch (error) {
       console.error('Error syncing orders:', error);
+    }
+  }
+
+  private async syncOrder(newOrder: any) {
+    const createOrderDto: CreateOrderDto = {
+      orderType: newOrder.orderType,
+      comments:
+        newOrder.orderType === OrderType.delivery
+          ? newOrder.orderDeliveryInfo?.additionalDetails
+          : undefined,
+      status: undefined, // No se llena según las instrucciones
+      createdAt: new Date(newOrder.createdAt),
+      deliveryAddress:
+        newOrder.orderType === OrderType.delivery
+          ? newOrder.orderDeliveryInfo?.streetAddress
+          : undefined,
+      scheduledDeliveryTime: newOrder.scheduledDeliveryTime
+        ? new Date(newOrder.scheduledDeliveryTime)
+        : undefined,
+      phoneNumber: newOrder.clientId,
+      customerName:
+        newOrder.orderType === OrderType.pickup
+          ? newOrder.orderDeliveryInfo?.pickupName
+          : undefined,
+      createdBy: 'Whatsapp',
+      totalCost: newOrder.totalCost,
+      orderAdjustments: [], // No hay ajustes según las instrucciones
+      area: undefined, // No se llena según las instrucciones
+      table: undefined, // No se llena según las instrucciones
+      orderItems: newOrder.orderItems.flatMap((item) => {
+        const baseItem = {
+          product: { id: item.productId },
+          productVariant: item.productVariantId
+            ? { id: item.productVariantId }
+            : undefined,
+          price: item.price,
+          comments: item.comments,
+          selectedModifiers: item.selectedModifiers.map((modifier) => ({
+            modifier: { id: modifier.id },
+          })),
+          selectedPizzaFlavors: [],
+          selectedPizzaIngredients: item.selectedPizzaIngredients.map(
+            (ingredient) => ({
+              pizzaIngredient: { id: ingredient.pizzaIngredientId },
+              half: ingredient.half,
+              //action: ingredient.action,
+            }),
+          ),
+        };
+
+        // Crear un array con 'quantity' número de copias del item
+        return Array(item.quantity).fill(baseItem);
+      }),
+    };
+
+    try {
+      const createdOrder = await this.createOrder(createOrderDto);
+      console.log(`Order synced successfully: ${createdOrder.id}`);
+      // Aquí podrías actualizar el estado de sincronización en el servidor remoto si es necesario
+    } catch (error) {
+      console.error(`Error syncing order: ${newOrder.id}`, error);
     }
   }
 }
