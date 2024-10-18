@@ -32,7 +32,7 @@ dotenv.config();
 
 @Injectable()
 export class OrdersService {
-  private syncOrdersUrl = process.env.SYNC_ORDERS_URL;
+  private syncOrdersUrl = `${process.env.SERVER_URL}/orders/unsynced`;
 
   constructor(
     @InjectRepository(Order)
