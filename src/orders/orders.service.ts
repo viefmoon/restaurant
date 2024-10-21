@@ -33,6 +33,7 @@ dotenv.config();
 @Injectable()
 export class OrdersService {
   private syncOrdersUrl = `${process.env.SERVER_URL}/orders/unsynced`;
+  private syncStatusUrl = `${process.env.SERVER_URL}/orders/sync`;
 
   constructor(
     @InjectRepository(Order)
@@ -1859,9 +1860,22 @@ export class OrdersService {
     try {
       const createdOrder = await this.createOrder(createOrderDto);
       console.log(`Order synced successfully: ${createdOrder.id}`);
-      // Aquí podrías actualizar el estado de sincronización en el servidor remoto si es necesario
+
+      // Llamar al endpoint de sincronización
+      await this.updateOrderSyncStatus(newOrder.id, createdOrder.id);
     } catch (error) {
       console.error(`Error syncing order: ${newOrder.id}`, error);
+    }
+  }
+
+  async updateOrderSyncStatus(orderId: number, localId: number): Promise<void> {
+    try {
+      await axios.post(this.syncStatusUrl, { orderId, localId });
+      console.log(
+        `Sync status updated for order: ${orderId}, local ID: ${localId}`,
+      );
+    } catch (error) {
+      console.error(`Error updating sync status for order: ${orderId}`, error);
     }
   }
 }
