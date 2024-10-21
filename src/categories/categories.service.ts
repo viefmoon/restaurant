@@ -28,8 +28,6 @@ export class CategoriesService {
         ],
       });
 
-      console.log('categories', JSON.stringify(categories, null, 2));
-
       return categories;
     } catch (error) {
       throw new HttpException(
