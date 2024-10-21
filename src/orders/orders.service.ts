@@ -1842,7 +1842,7 @@ export class OrdersService {
           price: item.price,
           comments: item.comments,
           selectedModifiers: item.selectedModifiers.map((modifier) => ({
-            modifier: { id: modifier.id },
+            modifier: { id: modifier.modifierId },
           })),
           selectedPizzaFlavors: [],
           selectedPizzaIngredients: item.selectedPizzaIngredients.map(
