@@ -27,6 +27,8 @@ import { UpdateOrderItemDto } from 'src/order_items/dto/update-order-item.dto';
 import { Interval } from '@nestjs/schedule';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
+import { CreateOrderItemDto } from 'src/order_items/dto/create-order-item.dto';
+import { ProductVariant } from 'src/product_variants/product-variant.entity';
 
 dotenv.config();
 
@@ -1832,10 +1834,10 @@ export class OrdersService {
       area: undefined, // No se llena según las instrucciones
       table: undefined, // No se llena según las instrucciones
       orderItems: newOrder.orderItems.flatMap((item) => {
-        const baseItem = {
-          product: { id: item.productId },
+        const baseItem: CreateOrderItemDto = {
+          product: { id: item.productId } as Product,
           productVariant: item.productVariantId
-            ? { id: item.productVariantId }
+            ? ({ id: item.productVariantId } as ProductVariant)
             : undefined,
           price: item.price,
           comments: item.comments,
@@ -1847,9 +1849,10 @@ export class OrdersService {
             (ingredient) => ({
               pizzaIngredient: { id: ingredient.pizzaIngredientId },
               half: ingredient.half,
-              //action: ingredient.action,
             }),
           ),
+          order: undefined,
+          status: OrderItemStatus.created,
         };
 
         // Crear un array con 'quantity' número de copias del item
