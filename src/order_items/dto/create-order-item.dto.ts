@@ -4,8 +4,8 @@ import {
   IsOptional,
   ValidateNested,
   IsArray,
-  IsNumber,
 } from 'class-validator';
+import { Modifier } from 'src/modifiers/modifier.entity';
 import { Order } from 'src/orders/order.entity';
 import { PizzaFlavor } from 'src/pizza_flavors/pizza-flavor.entity';
 import { PizzaIngredient } from 'src/pizza_ingredients/pizza-ingredient.entity';
@@ -15,16 +15,8 @@ import { PizzaHalf } from 'src/selected_pizza_ingredients/selected-pizza-ingredi
 import { OrderItemStatus } from '../order-item.entity';
 
 export class SelectedModifierDto {
-  @IsNotEmpty()
-  @ValidateNested()
-  @Type(() => ModifierDto)
-  modifier: ModifierDto;
-}
-
-export class ModifierDto {
-  @IsNumber()
-  @IsNotEmpty()
-  id: number;
+  @IsOptional()
+  modifier?: Modifier;
 }
 
 export class SelectedPizzaFlavorDto {
