@@ -90,7 +90,7 @@ export class OrderItemsService {
     if (createOrderItemDto.selectedModifiers?.length) {
       for (const modifierDto of createOrderItemDto.selectedModifiers) {
         const modifier = await entityManager.findOne(Modifier, {
-          where: { id: modifierDto.modifier.id },
+          where: { id: modifierDto.modifier.id.toString() },
         });
         if (modifier) {
           const selectedModifier = entityManager.create(SelectedModifier, {
