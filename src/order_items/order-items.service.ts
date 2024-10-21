@@ -45,6 +45,7 @@ export class OrderItemsService {
     createOrderItemDto: CreateOrderItemDto,
     transactionalEntityManager?: EntityManager,
   ): Promise<OrderItem> {
+    console.log('createOrderItemDto', JSON.stringify(createOrderItemDto));
     const entityManager = transactionalEntityManager
       ? transactionalEntityManager
       : this.orderItemRepository.manager;
