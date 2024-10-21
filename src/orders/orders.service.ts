@@ -1858,6 +1858,7 @@ export class OrdersService {
     };
 
     try {
+      console.log('createOrderDto', JSON.stringify(createOrderDto));
       const createdOrder = await this.createOrder(createOrderDto);
       console.log(`Order synced successfully: ${createdOrder.id}`);
 
