@@ -1871,9 +1871,6 @@ export class OrdersService {
   async updateOrderSyncStatus(orderId: number, localId: number): Promise<void> {
     try {
       await axios.post(this.syncStatusUrl, { orderId, localId });
-      console.log(
-        `Sync status updated for order: ${orderId}, local ID: ${localId}`,
-      );
     } catch (error) {
       console.error(`Error updating sync status for order: ${orderId}`, error);
     }
