@@ -1806,7 +1806,7 @@ export class OrdersService {
     return savedOrderItem;
   }
 
-  @Interval(30000) // Ejecutar cada 30 segundos
+  @Interval(20000) // Ejecutar cada 30 segundos
   async syncOrders() {
     try {
       // Sincronizar nuevas órdenes
@@ -1821,6 +1821,8 @@ export class OrdersService {
       const unfinishedOrdersResponse = await axios.get(
         this.getUnfinishedOrdersUrl,
       );
+
+      console.log('unfinishedOrdersResponse', unfinishedOrdersResponse);
       const unfinishedOrders = unfinishedOrdersResponse.data;
 
       // Recolectar todos los localIds de órdenes finalizadas
