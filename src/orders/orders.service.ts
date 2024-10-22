@@ -1797,7 +1797,6 @@ export class OrdersService {
     try {
       const response = await axios.get(this.syncOrdersUrl);
       const newOrders = response.data;
-      console.log('newOrders', JSON.stringify(newOrders));
 
       for (const newOrder of newOrders) {
         await this.syncOrder(newOrder);
@@ -1823,7 +1822,9 @@ export class OrdersService {
       scheduledDeliveryTime: newOrder.scheduledDeliveryTime
         ? new Date(newOrder.scheduledDeliveryTime)
         : undefined,
-      phoneNumber: newOrder.clientId,
+      phoneNumber: newOrder.clientId.startsWith('521')
+        ? newOrder.clientId.slice(3)
+        : newOrder.clientId,
       customerName:
         newOrder.orderType === OrderType.pickup
           ? newOrder.orderDeliveryInfo?.pickupName
@@ -1861,11 +1862,7 @@ export class OrdersService {
     };
 
     try {
-      console.log('createOrderDto', JSON.stringify(createOrderDto));
       const createdOrder = await this.createOrder(createOrderDto);
-      console.log(`Order synced successfully: ${createdOrder.id}`);
-
-      // Llamar al endpoint de sincronización
       await this.updateOrderSyncStatus(newOrder.id, createdOrder.id);
     } catch (error) {
       console.error(`Error syncing order: ${newOrder.id}`, error);
