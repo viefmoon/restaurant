@@ -36,6 +36,7 @@ dotenv.config();
 export class OrdersService {
   private syncOrdersUrl = `${process.env.SERVER_URL}/orders/unsynced`;
   private syncStatusUrl = `${process.env.SERVER_URL}/orders/sync`;
+  private syncCompletionUrl = `${process.env.SERVER_URL}/orders/complete`; // Nueva URL
 
   constructor(
     @InjectRepository(Order)
@@ -1350,7 +1351,7 @@ export class OrdersService {
         const completedOrders: Order[] = [];
         for (const order of orders) {
           if (order.table) {
-            order.table.status = TableStatus.AVAILABLE; // Cambiar el estado a AVAILABLE
+            order.table.status = TableStatus.AVAILABLE;
             await transactionalEntityManager.save(order.table);
           }
           if (order.amountPaid < order.totalCost) {
@@ -1367,9 +1368,30 @@ export class OrdersService {
       },
     );
 
+    // Sincronizar con el servidor externo
+    try {
+      await this.syncCompletedOrders(completedOrders);
+    } catch (error) {
+      console.error('Error syncing completed orders:', error);
+    }
+
     // Emitir a las pantallas después de actualizar el estado de las órdenes
     await this.appGateway.emitPendingOrderItemsToScreens();
     return completedOrders;
+  }
+
+  private async syncCompletedOrders(orders: Order[]): Promise<void> {
+    try {
+      await axios.post(this.syncCompletionUrl, {
+        orders: orders.map((order) => ({
+          localId: order.id,
+          completionDate: order.completionDate,
+        })),
+      });
+    } catch (error) {
+      console.error('Error syncing completed orders status:', error);
+      throw error;
+    }
   }
 
   async cancelOrder(orderId: number): Promise<Order> {
