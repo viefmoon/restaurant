@@ -36,7 +36,8 @@ dotenv.config();
 export class OrdersService {
   private syncOrdersUrl = `${process.env.SERVER_URL}/orders/unsynced`;
   private syncStatusUrl = `${process.env.SERVER_URL}/orders/sync`;
-  private syncCompletionUrl = `${process.env.SERVER_URL}/orders/complete`; // Nueva URL
+  private getUnfinishedOrdersUrl = `${process.env.SERVER_URL}/orders/unfinished`;
+  private completeOrdersUrl = `${process.env.SERVER_URL}/orders/complete-orders`;
 
   constructor(
     @InjectRepository(Order)
@@ -1368,30 +1369,9 @@ export class OrdersService {
       },
     );
 
-    // Sincronizar con el servidor externo
-    try {
-      await this.syncCompletedOrders(completedOrders);
-    } catch (error) {
-      console.error('Error syncing completed orders:', error);
-    }
-
     // Emitir a las pantallas después de actualizar el estado de las órdenes
     await this.appGateway.emitPendingOrderItemsToScreens();
     return completedOrders;
-  }
-
-  private async syncCompletedOrders(orders: Order[]): Promise<void> {
-    try {
-      await axios.post(this.syncCompletionUrl, {
-        orders: orders.map((order) => ({
-          localId: order.id,
-          completionDate: order.completionDate,
-        })),
-      });
-    } catch (error) {
-      console.error('Error syncing completed orders status:', error);
-      throw error;
-    }
   }
 
   async cancelOrder(orderId: number): Promise<Order> {
@@ -1829,11 +1809,39 @@ export class OrdersService {
   @Interval(30000) // Ejecutar cada 30 segundos
   async syncOrders() {
     try {
-      const response = await axios.get(this.syncOrdersUrl);
-      const newOrders = response.data;
+      // Sincronizar nuevas órdenes
+      const newOrdersResponse = await axios.get(this.syncOrdersUrl);
+      const newOrders = newOrdersResponse.data;
 
       for (const newOrder of newOrders) {
         await this.syncOrder(newOrder);
+      }
+
+      // Obtener órdenes no finalizadas
+      const unfinishedOrdersResponse = await axios.get(
+        this.getUnfinishedOrdersUrl,
+      );
+      const unfinishedOrders = unfinishedOrdersResponse.data;
+
+      // Recolectar todos los localIds de órdenes finalizadas
+      const completedLocalIds = [];
+      for (const unfinishedOrder of unfinishedOrders) {
+        const localOrder = await this.orderRepository.findOne({
+          where: { id: unfinishedOrder.localId },
+        });
+
+        if (localOrder && localOrder.status === OrderStatus.finished) {
+          completedLocalIds.push({ localId: unfinishedOrder.localId });
+        }
+      }
+
+      // Si hay órdenes finalizadas, enviarlas todas juntas
+      if (completedLocalIds.length > 0) {
+        try {
+          await axios.put(this.completeOrdersUrl, completedLocalIds);
+        } catch (completionError) {
+          console.error('Error completing orders:', completionError);
+        }
       }
     } catch (error) {
       console.error('Error syncing orders:', error);
