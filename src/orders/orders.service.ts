@@ -1822,8 +1822,8 @@ export class OrdersService {
         this.getUnfinishedOrdersUrl,
       );
 
-      console.log('unfinishedOrdersResponse', unfinishedOrdersResponse);
       const unfinishedOrders = unfinishedOrdersResponse.data;
+      console.log('unfinishedOrders', unfinishedOrders);
 
       // Recolectar todos los localIds de órdenes finalizadas
       const completedLocalIds = [];
