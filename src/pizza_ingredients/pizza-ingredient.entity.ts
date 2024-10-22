@@ -1,14 +1,6 @@
 import { Product } from 'src/products/product.entity';
 import { SelectedPizzaIngredient } from 'src/selected_pizza_ingredients/selected-pizza-ingredient.entity';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-  ManyToMany,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, ManyToMany, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: 'pizza_ingredients' })
 export class PizzaIngredient {

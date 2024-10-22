@@ -135,6 +135,7 @@ export class OrderItemsService {
               orderItem: savedOrderItem,
               pizzaIngredient: pizzaIngredient,
               half: ingredientDto.half,
+              action: ingredientDto.action,
             },
           );
           await entityManager.save(selectedPizzaIngredient);
@@ -268,6 +269,7 @@ export class OrderItemsService {
               orderItem: orderItem,
               pizzaIngredient: pizzaIngredient,
               half: ingredientDto.half,
+              action: ingredientDto.action,
             },
           );
           await entityManager.save(selectedPizzaIngredient);

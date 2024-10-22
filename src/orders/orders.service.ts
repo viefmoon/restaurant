@@ -737,7 +737,11 @@ export class OrdersService {
         'orderItem.selectedPizzaIngredients',
         'selectedPizzaIngredient',
       )
-      .addSelect(['selectedPizzaIngredient.id, selectedPizzaIngredient.half'])
+      .addSelect([
+        'selectedPizzaIngredient.id',
+        'selectedPizzaIngredient.half',
+        'selectedPizzaIngredient.action',
+      ])
       .leftJoinAndSelect(
         'selectedPizzaIngredient.pizzaIngredient',
         'selectedPizzaIngredientDetail',
@@ -827,7 +831,11 @@ export class OrdersService {
         'orderItem.selectedPizzaIngredients',
         'selectedPizzaIngredient',
       )
-      .addSelect(['selectedPizzaIngredient.id, selectedPizzaIngredient.half'])
+      .addSelect([
+        'selectedPizzaIngredient.id',
+        'selectedPizzaIngredient.half',
+        'selectedPizzaIngredient.action',
+      ])
       .leftJoinAndSelect(
         'selectedPizzaIngredient.pizzaIngredient',
         'selectedPizzaIngredientDetail',
@@ -1471,7 +1479,11 @@ export class OrdersService {
         'orderItem.selectedPizzaIngredients',
         'selectedPizzaIngredient',
       )
-      .addSelect(['selectedPizzaIngredient.id, selectedPizzaIngredient.half'])
+      .addSelect([
+        'selectedPizzaIngredient.id',
+        'selectedPizzaIngredient.half',
+        'selectedPizzaIngredient.action',
+      ])
       .leftJoinAndSelect(
         'selectedPizzaIngredient.pizzaIngredient',
         'selectedPizzaIngredientDetail',
@@ -1854,6 +1866,7 @@ export class OrdersService {
             (ingredient) => ({
               pizzaIngredient: { id: ingredient.pizzaIngredientId },
               half: ingredient.half,
+              action: ingredient.action,
             }),
           ),
           order: undefined,
