@@ -1819,8 +1819,12 @@ export class OrdersService {
         newOrder.orderType === OrderType.delivery
           ? newOrder.orderDeliveryInfo?.streetAddress
           : undefined,
+      // Restar 6 horas a la fecha de entrega programada para mexico
       scheduledDeliveryTime: newOrder.scheduledDeliveryTime
-        ? new Date(newOrder.scheduledDeliveryTime)
+        ? new Date(
+            new Date(newOrder.scheduledDeliveryTime).getTime() -
+              6 * 60 * 60 * 1000,
+          )
         : undefined,
       phoneNumber: newOrder.clientId.startsWith('521')
         ? newOrder.clientId.slice(3)
