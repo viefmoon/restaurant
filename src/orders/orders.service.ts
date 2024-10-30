@@ -1872,9 +1872,9 @@ export class OrdersService {
               6 * 60 * 60 * 1000,
           )
         : undefined,
-      phoneNumber: newOrder.clientId.startsWith('521')
-        ? newOrder.clientId.slice(3)
-        : newOrder.clientId,
+      phoneNumber: newOrder.customerId.startsWith('521')
+        ? newOrder.customerId.slice(3)
+        : newOrder.customerId,
       customerName:
         newOrder.orderType === OrderType.pickup
           ? newOrder.orderDeliveryInfo?.pickupName
