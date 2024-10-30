@@ -306,6 +306,7 @@ export const seedProducts = async (dataSource: DataSource) => {
               required: false,
               acceptsMultiple: true,
               modifiers: [
+                { id: 'HM3-1', name: 'Sin aderezos', price: 0 },
                 { id: 'HM3-2', name: 'Sin tocino', price: 0 },
                 { id: 'HM3-3', name: 'Sin queso amarillo', price: 0 },
                 { id: 'HM3-4', name: 'Sin queso blanco', price: 0 },
