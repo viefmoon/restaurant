@@ -1812,8 +1812,10 @@ export class OrdersService {
       // Sincronizar nuevas órdenes
       const newOrdersResponse = await axios.get(this.syncOrdersUrl);
       const newOrders = newOrdersResponse.data;
+      console.log('newOrders', newOrders);
 
       for (const newOrder of newOrders) {
+        console.log('newOrder una por una', newOrder);
         await this.syncOrder(newOrder);
       }
 
