@@ -111,7 +111,7 @@ export const seedProducts = async (dataSource: DataSource) => {
         { id: 'CH', name: 'Chocolate', price: 50 },
         { id: 'LC', name: 'Latte Capuchino', price: 50 },
         { id: 'LV', name: 'Latte Vainilla', price: 50 },
-        { id: 'MC', name: 'Mocaccino', price: 50 },
+        { id: 'MCC', name: 'Mocaccino', price: 50 },
       ],
     },
     {
