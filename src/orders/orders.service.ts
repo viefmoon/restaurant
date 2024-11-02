@@ -1806,26 +1806,35 @@ export class OrdersService {
     return savedOrderItem;
   }
 
-  @Interval(20000) // Ejecutar cada 30 segundos
+  @Interval(30000) // Ejecutar cada 30 segundos
   async syncOrders() {
     try {
       // Sincronizar nuevas órdenes
       const newOrdersResponse = await axios.get(this.syncOrdersUrl);
       const newOrders = newOrdersResponse.data;
-      console.log('newOrders', newOrders);
 
       for (const newOrder of newOrders) {
-        console.log('newOrder una por una', newOrder);
         await this.syncOrder(newOrder);
       }
 
-      // Obtener órdenes no finalizadas
+      // Obtener la fecha actual en México en formato YYYY-MM-DD
+      const mexicoDate = new Date()
+        .toLocaleString('en-US', {
+          timeZone: 'America/Mexico_City',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        })
+        .split('/')
+        .reverse()
+        .join('-');
+
+      // Obtener órdenes no finalizadas el dia de hoy hora de mexico incluyendo la fecha
       const unfinishedOrdersResponse = await axios.get(
-        this.getUnfinishedOrdersUrl,
+        `${this.getUnfinishedOrdersUrl}?date=${mexicoDate}`,
       );
 
       const unfinishedOrders = unfinishedOrdersResponse.data;
-      console.log('unfinishedOrders', unfinishedOrders);
 
       // Recolectar todos los localIds de órdenes finalizadas
       const completedLocalIds = [];
