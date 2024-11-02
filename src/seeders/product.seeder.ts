@@ -298,6 +298,11 @@ export const seedProducts = async (dataSource: DataSource) => {
                   name: 'Pollo en lugar de carne de res',
                   price: 15,
                 },
+                {
+                  id: 'HM2-3',
+                  name: 'Partida',
+                  price: 0,
+                },
               ],
             },
             {
@@ -306,7 +311,7 @@ export const seedProducts = async (dataSource: DataSource) => {
               required: false,
               acceptsMultiple: true,
               modifiers: [
-                { id: 'HM3-1', name: 'Sin aderezos', price: 0 },
+                { id: 'HM3-1', name: 'Sin verduras', price: 0 },
                 { id: 'HM3-2', name: 'Sin tocino', price: 0 },
                 { id: 'HM3-3', name: 'Sin queso amarillo', price: 0 },
                 { id: 'HM3-4', name: 'Sin queso blanco', price: 0 },
@@ -319,6 +324,7 @@ export const seedProducts = async (dataSource: DataSource) => {
                 { id: 'HM3-11', name: 'Sin crema', price: 0 },
                 { id: 'HM3-12', name: 'Sin mostaza', price: 0 },
                 { id: 'HM3-13', name: 'Sin pierna', price: 0 },
+                { id: 'HM3-14', name: 'Sin aderezos', price: 0 },
               ],
             },
           ],
