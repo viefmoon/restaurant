@@ -5,9 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderCounter } from './order-counter.entity'; // Asume una entidad Category
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrderCounter])], 
-  providers: [OrderCountersService], 
-  controllers: [OrderCountersController] 
+  imports: [TypeOrmModule.forFeature([OrderCounter])],
+  providers: [OrderCountersService],
+  controllers: [OrderCountersController],
 })
 export class OrderCountersModule {}
-

@@ -4,17 +4,15 @@ import { Order } from 'src/orders/order.entity';
 
 @Entity({ name: 'areas' })
 export class Area {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @Column()
+  name: string;
 
-    @Column()
-    name: string;
+  @OneToMany(() => Table, (table) => table.area)
+  tables: Table[];
 
-    @OneToMany(() => Table, (table) => table.area)
-    tables: Table[];
-    
-    @OneToMany(() => Order, (order) => order.table)
-    orders: Order[];
+  @OneToMany(() => Order, (order) => order.table)
+  orders: Order[];
 }
-

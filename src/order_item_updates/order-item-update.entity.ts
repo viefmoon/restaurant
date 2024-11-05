@@ -4,15 +4,15 @@ import { OrderUpdate } from '../order_updates/order-update.entity';
 
 @Entity({ name: 'order_item_updates' })
 export class OrderItemUpdate {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @ManyToOne(() => OrderItem, orderItem => orderItem.orderItemUpdates)
-    orderItem: OrderItem;
+  @ManyToOne(() => OrderItem, (orderItem) => orderItem.orderItemUpdates)
+  orderItem: OrderItem;
 
-    @ManyToOne(() => OrderUpdate, orderUpdate => orderUpdate.orderItemUpdates)
-    orderUpdate: OrderUpdate;
+  @ManyToOne(() => OrderUpdate, (orderUpdate) => orderUpdate.orderItemUpdates)
+  orderUpdate: OrderUpdate;
 
-    @Column({ type: 'boolean' })
-    isNewOrderItem: boolean; 
+  @Column({ type: 'boolean' })
+  isNewOrderItem: boolean;
 }

@@ -1,4 +1,3 @@
-
 export class PrintOrderDto {
-    printedBy: string;
+  printedBy: string;
 }

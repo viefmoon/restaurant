@@ -5,10 +5,10 @@ import { OrderItemUpdate } from './order-item-update.entity';
 
 @Injectable()
 export class OrderItemUpdatesService {
-    constructor(
-        @InjectRepository(OrderItemUpdate)
-        private readonly orderItemUpdateRepository: Repository<OrderItemUpdate>,
-    ) {}
+  constructor(
+    @InjectRepository(OrderItemUpdate)
+    private readonly orderItemUpdateRepository: Repository<OrderItemUpdate>,
+  ) {}
 
-    // Métodos para crear, actualizar, eliminar y recuperar órdenes
+  // Métodos para crear, actualizar, eliminar y recuperar órdenes
 }

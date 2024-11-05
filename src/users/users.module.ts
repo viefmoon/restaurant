@@ -7,8 +7,8 @@ import { JwtStrategy } from '../auth/jwt/jwt.strategy';
 import { Rol } from 'src/roles/rol.entity';
 
 @Module({
-  imports: [ TypeOrmModule.forFeature([User, Rol]) ],
+  imports: [TypeOrmModule.forFeature([User, Rol])],
   providers: [UsersService, JwtStrategy],
-  controllers: [UsersController]
+  controllers: [UsersController],
 })
 export class UsersModule {}

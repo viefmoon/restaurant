@@ -2,12 +2,12 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity({ name: 'order_counters' })
 export class OrderCounter {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ type: 'date' })
-    date: Date;
+  @Column({ type: 'date' })
+  date: Date;
 
-    @Column()
-    counter: number;
+  @Column()
+  counter: number;
 }

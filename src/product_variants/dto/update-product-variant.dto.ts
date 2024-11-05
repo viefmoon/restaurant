@@ -1,11 +1,11 @@
 import { IsOptional, IsNumber, IsString } from 'class-validator';
 
 export class UpdateProductVariantDto {
-    @IsOptional()
-    @IsString()
-    name?: string;
+  @IsOptional()
+  @IsString()
+  name?: string;
 
-    @IsOptional()
-    @IsNumber()
-    price?: number;
+  @IsOptional()
+  @IsNumber()
+  price?: number;
 }

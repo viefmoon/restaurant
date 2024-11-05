@@ -3,12 +3,12 @@ import { Subcategory } from '../subcategories/subcategory.entity';
 
 @Entity({ name: 'categories' })
 export class Category {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ unique: true })
-    name: string;
+  @Column({ unique: true })
+  name: string;
 
-    @OneToMany(() => Subcategory, subcategory => subcategory.category)
-    subcategories: Subcategory[];
+  @OneToMany(() => Subcategory, (subcategory) => subcategory.category)
+  subcategories: Subcategory[];
 }

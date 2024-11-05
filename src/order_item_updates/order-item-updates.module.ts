@@ -7,7 +7,6 @@ import { OrderItemUpdate } from './order-item-update.entity'; // Asume una entid
 @Module({
   imports: [TypeOrmModule.forFeature([OrderItemUpdate])], // Importa solo las entidades relevantes para categorías
   providers: [OrderItemUpdatesService], // Provee el servicio de categorías
-  controllers: [OrderItemUpdatesController] // Registra el controlador de categorías
+  controllers: [OrderItemUpdatesController], // Registra el controlador de categorías
 })
 export class OrderItemUpdatesModule {}
-

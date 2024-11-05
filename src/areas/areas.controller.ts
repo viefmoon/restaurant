@@ -5,16 +5,15 @@ import { Table } from '../tables/table.entity';
 
 @Controller('areas')
 export class AreasController {
-    constructor(private readonly areasService: AreasService) {}
+  constructor(private readonly areasService: AreasService) {}
 
-    @Get()
-    async getAreas(): Promise<Area[]> {
-        return this.areasService.findAll();
-    }
+  @Get()
+  async getAreas(): Promise<Area[]> {
+    return this.areasService.findAll();
+  }
 
-    @Get(':id/tables')
-    async getTablesFromArea(@Param('id') id: number): Promise<Table[]> {
-        return this.areasService.findTablesByAreaId(id);
-    }
-
+  @Get(':id/tables')
+  async getTablesFromArea(@Param('id') id: number): Promise<Table[]> {
+    return this.areasService.findTablesByAreaId(id);
+  }
 }

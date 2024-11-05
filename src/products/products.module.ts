@@ -5,9 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from './product.entity'; // Asume una entidad Category
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product])], 
-  providers: [ProductsService], 
-  controllers: [ProductsController] 
+  imports: [TypeOrmModule.forFeature([Product])],
+  providers: [ProductsService],
+  controllers: [ProductsController],
 })
 export class ProductsModule {}
-

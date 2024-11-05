@@ -8,11 +8,11 @@ export const seedTables = async (dataSource: DataSource) => {
 
   // Nombres de las áreas a crear con el número deseado de mesas
   const areaTargets = {
-    'ARCO': 2,
-    'BAR': 12,
-    'ENTRADA': 5,
-    'EQUIPAL': 2,
-    'JARDIN': 5
+    ARCO: 2,
+    BAR: 12,
+    ENTRADA: 5,
+    EQUIPAL: 2,
+    JARDIN: 5,
   };
 
   for (const [name, targetTableCount] of Object.entries(areaTargets)) {

@@ -5,10 +5,10 @@ import { Modifier } from './modifier.entity';
 
 @Injectable()
 export class ModifiersService {
-    constructor(
-        @InjectRepository(Modifier)
-        private readonly modifierRepository: Repository<Modifier>,
-    ) {}
+  constructor(
+    @InjectRepository(Modifier)
+    private readonly modifierRepository: Repository<Modifier>,
+  ) {}
 
-    // Métodos para crear, actualizar, eliminar y recuperar modificadores
+  // Métodos para crear, actualizar, eliminar y recuperar modificadores
 }

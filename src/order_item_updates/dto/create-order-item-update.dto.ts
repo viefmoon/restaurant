@@ -1,26 +1,32 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsDate } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsDate,
+} from 'class-validator';
 
 export class CreateOrderDto {
-    @IsNotEmpty()
-    @IsString()
-    orderType: string;
+  @IsNotEmpty()
+  @IsString()
+  orderType: string;
 
-    @IsNotEmpty()
-    @IsString()
-    status: string;
+  @IsNotEmpty()
+  @IsString()
+  status: string;
 
-    @IsNumber()
-    amountPaid: number;
+  @IsNumber()
+  amountPaid: number;
 
-    @IsNumber()
-    total: number;
+  @IsNumber()
+  total: number;
 
-    @IsOptional()
-    @IsString()
-    comments?: string;
+  @IsOptional()
+  @IsString()
+  comments?: string;
 
-    // Incluye tableId si la entidad Table está disponible
-    // @IsOptional()
-    // @IsNumber()
-    // tableId?: number;
+  // Incluye tableId si la entidad Table está disponible
+  // @IsOptional()
+  // @IsNumber()
+  // tableId?: number;
 }

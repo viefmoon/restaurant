@@ -5,9 +5,8 @@ import { PizzaIngredient } from './pizza-ingredient.entity';
 
 @Injectable()
 export class PizzaIngredientsService {
-    constructor(
-        @InjectRepository(PizzaIngredient)
-        private readonly pizzaIngredientRepository: Repository<PizzaIngredient>,
-    ) {}
-
+  constructor(
+    @InjectRepository(PizzaIngredient)
+    private readonly pizzaIngredientRepository: Repository<PizzaIngredient>,
+  ) {}
 }

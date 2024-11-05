@@ -7,7 +7,6 @@ import { OrderPrint } from './order-print.entity'; // Asume una entidad Category
 @Module({
   imports: [TypeOrmModule.forFeature([OrderPrint])], // Importa solo las entidades relevantes para categorías
   providers: [OrderPrintsService], // Provee el servicio de categorías
-  controllers: [OrderPrintsController] // Registra el controlador de categorías
+  controllers: [OrderPrintsController], // Registra el controlador de categorías
 })
 export class OrderPrintsModule {}
-
