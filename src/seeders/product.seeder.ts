@@ -986,37 +986,37 @@ export const seedProducts = async (dataSource: DataSource) => {
           shortName: 'Pizza',
           productVariants: [
             {
-              id: 'PZ-V-G',
+              id: 'PZ-V-1',
               name: 'Pizza Grande',
               shortName: 'Pizza GDE',
               price: 240,
             },
             {
-              id: 'PZ-V-M',
+              id: 'PZ-V-2',
               name: 'Pizza Mediana',
               shortName: 'Pizza MED.',
               price: 190,
             },
             {
-              id: 'PZ-V-CH',
+              id: 'PZ-V-3',
               name: 'Pizza Chica',
               shortName: 'Pizza CH.',
               price: 140,
             },
             {
-              id: 'PZ-V-GR',
+              id: 'PZ-V-4',
               name: 'Pizza Grande Con Orilla Rellena de Queso',
               shortName: 'Pizza GDE C/R.',
               price: 270,
             },
             {
-              id: 'PZ-V-MR',
+              id: 'PZ-V-5',
               name: 'Pizza Mediana Con Orilla Rellena de Queso',
               shortName: 'Pizza MED. C/R.',
               price: 220,
             },
             {
-              id: 'PZ-V-CHR',
+              id: 'PZ-V-6',
               name: 'Pizza Chica Con Orilla Rellena de Queso',
               shortName: 'Pizza CH. C/R.',
               price: 160,

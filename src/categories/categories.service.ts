@@ -14,19 +14,30 @@ export class CategoriesService {
   ) {}
 
   async findAllWithSubcategoriesAndProducts(): Promise<Category[]> {
-    const cacheKey = 'categories_with_details';
     try {
-      const categories = await this.categoryRepository.find({
-        relations: [
-          'subcategories',
-          'subcategories.products',
-          'subcategories.products.productVariants',
-          'subcategories.products.modifierTypes',
-          'subcategories.products.modifierTypes.modifiers',
-          'subcategories.products.pizzaFlavors',
-          'subcategories.products.pizzaIngredients',
-        ],
-      });
+      const categories = await this.categoryRepository
+        .createQueryBuilder('category')
+        .leftJoinAndSelect('category.subcategories', 'subcategory')
+        .leftJoinAndSelect('subcategory.products', 'product')
+        .leftJoinAndSelect('product.productVariants', 'productVariant')
+        .leftJoinAndSelect('product.modifierTypes', 'modifierType')
+        .leftJoinAndSelect('modifierType.modifiers', 'modifier')
+        .leftJoinAndSelect('product.pizzaFlavors', 'pizzaFlavor')
+        .leftJoinAndSelect('product.pizzaIngredients', 'pizzaIngredient')
+        .orderBy('category.id', 'ASC')
+        .addOrderBy('subcategory.id', 'ASC')
+        .addOrderBy('product.id', 'ASC')
+        .addOrderBy('LENGTH(pizzaFlavor.id)', 'ASC')
+        .addOrderBy('pizzaFlavor.id', 'ASC')
+        .addOrderBy('LENGTH(productVariant.id)', 'ASC')
+        .addOrderBy('productVariant.id', 'ASC')
+        .addOrderBy('LENGTH(modifierType.id)', 'ASC')
+        .addOrderBy('modifierType.id', 'ASC')
+        .addOrderBy('LENGTH(modifier.id)', 'ASC')
+        .addOrderBy('modifier.id', 'ASC')
+        .addOrderBy('LENGTH(pizzaIngredient.id)', 'ASC')
+        .addOrderBy('pizzaIngredient.id', 'ASC')
+        .getMany();
 
       return categories;
     } catch (error) {
