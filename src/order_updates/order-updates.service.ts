@@ -5,9 +5,8 @@ import { OrderUpdate } from './order-update.entity';
 
 @Injectable()
 export class OrderUpdatesService {
-    constructor(
-        @InjectRepository(OrderUpdate)
-        private readonly orderUpdateRepository: Repository<OrderUpdate>,
-    ) {}
-
+  constructor(
+    @InjectRepository(OrderUpdate)
+    private readonly orderUpdateRepository: Repository<OrderUpdate>,
+  ) {}
 }

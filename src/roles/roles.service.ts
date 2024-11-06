@@ -6,16 +6,16 @@ import { CreateRolDto } from './dto/create-rol.dto';
 
 @Injectable()
 export class RolesService {
+  constructor(
+    @InjectRepository(Rol) private rolesRepository: Repository<Rol>,
+  ) {}
 
-    constructor(@InjectRepository(Rol) private rolesRepository: Repository<Rol>) {}
+  create(rol: CreateRolDto) {
+    const newRol = this.rolesRepository.create(rol);
+    return this.rolesRepository.save(newRol);
+  }
 
-    create(rol: CreateRolDto) {
-        const newRol = this.rolesRepository.create(rol);
-        return this.rolesRepository.save(newRol);
-    }
-
-    findAll() {
-        return this.rolesRepository.find({ where: { name: 'Mesero' } });
-    }
-
+  findAll() {
+    return this.rolesRepository.find({ where: { name: 'Mesero' } });
+  }
 }

@@ -7,24 +7,23 @@ import { UpdateTableStatusDto } from './dto/update-table-status.dto';
 
 @Injectable()
 export class TablesService {
+  constructor(
+    @InjectRepository(Table) private tablesRepository: Repository<Table>,
+  ) {}
 
-    constructor(
-        @InjectRepository(Table) private tablesRepository: Repository<Table>,
-    ) {}
+  create(createTableDto: CreateTableDto) {
+    const newTable = this.tablesRepository.create(createTableDto);
+    return this.tablesRepository.save(newTable);
+  }
 
-    create(createTableDto: CreateTableDto) {
-        const newTable = this.tablesRepository.create(createTableDto);
-        return this.tablesRepository.save(newTable);
-    }
+  findAll() {
+    return this.tablesRepository.find();
+  }
 
-    findAll() {
-        return this.tablesRepository.find();
-    }
+  async updateStatus(id: number, updateTableStatusDto: UpdateTableStatusDto) {
+    const table = await this.tablesRepository.findOneBy({ id: id });
 
-    async updateStatus(id: number, updateTableStatusDto: UpdateTableStatusDto) {
-        const table = await this.tablesRepository.findOneBy({id: id});
-
-        table.status = updateTableStatusDto.status;
-        return this.tablesRepository.save(table);
-    }
+    table.status = updateTableStatusDto.status;
+    return this.tablesRepository.save(table);
+  }
 }

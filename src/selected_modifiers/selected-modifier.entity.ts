@@ -4,12 +4,12 @@ import { Modifier } from '../modifiers/modifier.entity';
 
 @Entity({ name: 'selected_modifiers' })
 export class SelectedModifier {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @ManyToOne(() => OrderItem, orderItem => orderItem.selectedModifiers)
-    orderItem: OrderItem;
+  @ManyToOne(() => OrderItem, (orderItem) => orderItem.selectedModifiers)
+  orderItem: OrderItem;
 
-    @ManyToOne(() => Modifier, modifier => modifier.selectedModifiers)
-    modifier: Modifier;
+  @ManyToOne(() => Modifier, (modifier) => modifier.selectedModifiers)
+  modifier: Modifier;
 }

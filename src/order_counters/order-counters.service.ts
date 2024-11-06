@@ -5,10 +5,10 @@ import { OrderCounter } from './order-counter.entity';
 
 @Injectable()
 export class OrderCountersService {
-    constructor(
-        @InjectRepository(OrderCounter)
-        private readonly orderCounterRepository: Repository<OrderCounter>,
-    ) {}
+  constructor(
+    @InjectRepository(OrderCounter)
+    private readonly orderCounterRepository: Repository<OrderCounter>,
+  ) {}
 
-    // Métodos para crear, actualizar, eliminar y recuperar modificadores
+  // Métodos para crear, actualizar, eliminar y recuperar modificadores
 }

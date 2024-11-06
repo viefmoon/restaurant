@@ -7,7 +7,6 @@ import { PizzaIngredient } from './pizza-ingredient.entity'; // Asume una entida
 @Module({
   imports: [TypeOrmModule.forFeature([PizzaIngredient])], // Importa solo las entidades relevantes para categorías
   providers: [PizzaIngredientsService], // Provee el servicio de categorías
-  controllers: [PizzaIngredientsController] // Registra el controlador de categorías
+  controllers: [PizzaIngredientsController], // Registra el controlador de categorías
 })
 export class PizzaFlavorsModule {}
-

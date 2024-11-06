@@ -10,6 +10,9 @@ export class ProductVariant {
   @Column()
   name: string;
 
+  @Column({ nullable: true })
+  shortName: string;
+
   @Column({ type: 'text', nullable: true })
   ingredients: string | null;
 

@@ -8,33 +8,29 @@ import { Rol } from '../roles/rol.entity';
 
 @Injectable()
 export class UsersService {
+  constructor(
+    @InjectRepository(User) private usersRepository: Repository<User>,
+  ) {}
 
-    constructor(
-        @InjectRepository(User) private usersRepository: Repository<User>,
-    ) {}
-    
-    create(user: CreateUserDto) {
-        const newUser = this.usersRepository.create(user);
-        return this.usersRepository.save(newUser);
+  create(user: CreateUserDto) {
+    const newUser = this.usersRepository.create(user);
+    return this.usersRepository.save(newUser);
+  }
+
+  findAll() {
+    return this.usersRepository.find({ relations: ['roles'] });
+  }
+
+  async update(id: number, user: UpdateUserDto) {
+    const userFound = await this.usersRepository.findOneBy({ id: id });
+
+    if (!userFound) {
+      throw new HttpException('Usuario no existe', HttpStatus.NOT_FOUND);
     }
 
-    
-    findAll() {
-        return this.usersRepository.find({ relations: ['roles'] });
-    }
+    console.log('User:', user);
 
-    async update(id: number, user: UpdateUserDto) {
-        const userFound = await this.usersRepository.findOneBy({id: id});
-
-        if (!userFound) {
-            throw new HttpException('Usuario no existe', HttpStatus.NOT_FOUND);
-        }
-
-        console.log('User:', user);
-        
-
-        const updatedUser = Object.assign(userFound, user);
-        return this.usersRepository.save(updatedUser);
-    }
-    
+    const updatedUser = Object.assign(userFound, user);
+    return this.usersRepository.save(updatedUser);
+  }
 }

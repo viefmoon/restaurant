@@ -12,7 +12,9 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe({ forbidUnknownValues: false, transform: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({ forbidUnknownValues: false, transform: true }),
+  );
 
   const dataSource = app.get(DataSource);
 
@@ -32,7 +34,9 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   await app.listen(process.env.PORT, process.env.STATIC_IP);
-  console.log(`Aplicación en ejecución en http://${process.env.STATIC_IP}:${process.env.PORT}`);
+  console.log(
+    `Aplicación en ejecución en http://${process.env.STATIC_IP}:${process.env.PORT}`,
+  );
 }
 
 bootstrap();

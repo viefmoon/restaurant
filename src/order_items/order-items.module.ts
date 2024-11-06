@@ -8,7 +8,6 @@ import { AppGateway } from 'src/app.gateway';
 @Module({
   imports: [TypeOrmModule.forFeature([OrderItem])], // Importa solo las entidades relevantes para categorías
   providers: [OrderItemsService, AppGateway], // Provee el servicio de categorías
-  controllers: [OrderItemsController] // Registra el controlador de categorías
+  controllers: [OrderItemsController], // Registra el controlador de categorías
 })
 export class OrderItemsModule {}
-

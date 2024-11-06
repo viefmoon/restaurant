@@ -13,7 +13,6 @@ import { OrdersModule } from './orders/orders.module';
 import { AppGateway } from './app.gateway';
 import { ScheduleModule } from '@nestjs/schedule';
 
-
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -40,7 +39,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TablesModule,
     CategoriesModule,
     OrdersModule,
-    ScheduleModule.forRoot(), 
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService, AppGateway],

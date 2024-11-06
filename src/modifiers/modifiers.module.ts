@@ -7,7 +7,6 @@ import { Modifier } from './modifier.entity'; // Asume una entidad Category
 @Module({
   imports: [TypeOrmModule.forFeature([Modifier])], // Importa solo las entidades relevantes para categorías
   providers: [ModifiersService], // Provee el servicio de categorías
-  controllers: [ModifiersController] // Registra el controlador de categorías
+  controllers: [ModifiersController], // Registra el controlador de categorías
 })
 export class ModifiersModule {}
-

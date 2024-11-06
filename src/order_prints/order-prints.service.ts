@@ -5,9 +5,8 @@ import { OrderPrint } from './order-print.entity';
 
 @Injectable()
 export class OrderPrintsService {
-    constructor(
-        @InjectRepository(OrderPrint)
-        private readonly orderPrintRepository: Repository<OrderPrint>,
-    ) {}
-
+  constructor(
+    @InjectRepository(OrderPrint)
+    private readonly orderPrintRepository: Repository<OrderPrint>,
+  ) {}
 }

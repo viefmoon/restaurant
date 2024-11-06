@@ -7,7 +7,6 @@ import { PizzaFlavor } from './pizza-flavor.entity'; // Asume una entidad Catego
 @Module({
   imports: [TypeOrmModule.forFeature([PizzaFlavor])], // Importa solo las entidades relevantes para categorías
   providers: [PizzaFlavorsService], // Provee el servicio de categorías
-  controllers: [PizzaFlavorsController] // Registra el controlador de categorías
+  controllers: [PizzaFlavorsController], // Registra el controlador de categorías
 })
 export class PizzaFlavorsModule {}
-

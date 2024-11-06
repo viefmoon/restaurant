@@ -5,9 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ModifierType } from './modifier-type.entity'; // Asume una entidad Category
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ModifierType])], 
-  providers: [ModifierTypesService], 
-  controllers: [ModifierTypesController] 
+  imports: [TypeOrmModule.forFeature([ModifierType])],
+  providers: [ModifierTypesService],
+  controllers: [ModifierTypesController],
 })
 export class ModifierTypesModule {}
-

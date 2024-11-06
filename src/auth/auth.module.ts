@@ -9,7 +9,7 @@ import { RolesService } from 'src/roles/roles.service';
 import { Rol } from 'src/roles/rol.entity';
 
 @Module({
-  imports: [ 
+  imports: [
     TypeOrmModule.forFeature([User, Rol]),
     JwtModule.register({
       secret: process.env.JWT_SECRET,
@@ -17,6 +17,6 @@ import { Rol } from 'src/roles/rol.entity';
     }),
   ],
   providers: [AuthService, RolesService, JwtStrategy],
-  controllers: [AuthController]
+  controllers: [AuthController],
 })
 export class AuthModule {}

@@ -1,13 +1,11 @@
-import { IsNumber, IsOptional, IsString, IsInt } from "class-validator";
+import { IsNumber, IsOptional, IsString, IsInt } from 'class-validator';
 
 export class CreateOrderAdjustmentDto {
+  @IsOptional()
+  @IsString()
+  name: string;
 
-    @IsOptional()
-    @IsString()
-    name: string;
-
-    @IsOptional()
-    @IsNumber()
-    amount: number;
-    
-  }
+  @IsOptional()
+  @IsNumber()
+  amount: number;
+}

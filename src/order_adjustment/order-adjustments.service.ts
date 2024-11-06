@@ -5,9 +5,8 @@ import { OrderAdjustment } from './order-adjustment.entity';
 
 @Injectable()
 export class OrderAdjustmentsService {
-    constructor(
-        @InjectRepository(OrderAdjustment)
-        private readonly orderAdjustmentRepository: Repository<OrderAdjustment>,
-    ) {}
-
+  constructor(
+    @InjectRepository(OrderAdjustment)
+    private readonly orderAdjustmentRepository: Repository<OrderAdjustment>,
+  ) {}
 }

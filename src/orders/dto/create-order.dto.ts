@@ -14,7 +14,6 @@ import { Area } from 'src/areas/area.entity';
 import { Table } from 'src/tables/table.entity';
 import { CreateOrderAdjustmentDto } from 'src/order_adjustment/dto/create-order-adjustment.dto';
 
-
 export class CreateOrderDto {
   @IsEnum(OrderType)
   orderType: OrderType;
@@ -27,7 +26,6 @@ export class CreateOrderDto {
   @IsEnum(OrderStatus)
   status: OrderStatus;
 
-  
   createdAt: Date;
 
   @IsOptional()

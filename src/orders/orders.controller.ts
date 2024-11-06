@@ -40,12 +40,22 @@ export class OrdersController {
   }
 
   @Get('/delivery-prepared')
-  async getDeliveryPreparedOrders(): Promise<{ id: number; orderType: string; totalCost: number }[]> {
+  async getDeliveryPreparedOrders(): Promise<
+    { id: number; orderType: string; totalCost: number }[]
+  > {
     return this.ordersService.getDeliveryPreparedOrders();
   }
-  
+
   @Get('/sales-report')
-  async getSalesReport(): Promise<{ totalSales: number; totalAmountPaid: number; subcategories: { subcategoryName: string; totalSales: number; products: { name: string; quantity: number; totalSales: number }[] }[] }> {
+  async getSalesReport(): Promise<{
+    totalSales: number;
+    totalAmountPaid: number;
+    subcategories: {
+      subcategoryName: string;
+      totalSales: number;
+      products: { name: string; quantity: number; totalSales: number }[];
+    }[];
+  }> {
     return this.ordersService.getSalesReport();
   }
 
@@ -86,12 +96,11 @@ export class OrdersController {
     return this.ordersService.getOrderById(id);
   }
 
-  
   @Patch('/:id/cancel')
   async cancelOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.cancelOrder(id);
   }
-  
+
   @Patch('/:id/status')
   async updateOrderPreparationStatus(@Body() order: Order) {
     return this.ordersService.updateOrderPreparationStatus(order);
@@ -132,7 +141,7 @@ export class OrdersController {
   async recoverOrder(@Param('id', ParseIntPipe) id: number) {
     return this.ordersService.recoverOrder(id);
   }
-  
+
   @Patch('/complete-multiple')
   async completeMultipleOrders(@Body() orderIds: number[]) {
     return this.ordersService.completeMultipleOrders(orderIds);
@@ -141,13 +150,15 @@ export class OrdersController {
   @Patch('/:id/print')
   async registerTicketPrint(
     @Param('id', ParseIntPipe) orderId: number,
-    @Body() printOrderDto: PrintOrderDto
+    @Body() printOrderDto: PrintOrderDto,
   ) {
     return this.ordersService.registerPrint(orderId, printOrderDto.printedBy);
   }
 
   @Patch('/revert-prepared-multiple')
-  async revertMultipleOrdersToPrepared(@Body() orderIds: number[]): Promise<Order[]> {
+  async revertMultipleOrdersToPrepared(
+    @Body() orderIds: number[],
+  ): Promise<Order[]> {
     return this.ordersService.revertMultipleOrdersToPrepared(orderIds);
   }
 
@@ -170,7 +181,9 @@ export class OrdersController {
   async resetDatabase() {
     // Asegúrate de implementar medidas de seguridad aquí
     await this.ordersService.resetDatabase();
-    return { message: 'La base de datos ha sido reseteada y el servidor se está reiniciando.' };
+    return {
+      message:
+        'La base de datos ha sido reseteada y el servidor se está reiniciando.',
+    };
   }
-
 }

@@ -1,4 +1,4 @@
 module.exports = {
-    production: false,
-    id_developer: 0
-}
+  production: false,
+  id_developer: 0,
+};

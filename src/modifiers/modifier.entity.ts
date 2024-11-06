@@ -1,11 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, PrimaryColumn } from 'typeorm';
 import { SelectedModifier } from '../selected_modifiers/selected-modifier.entity';
 import { ModifierType } from '../modifier_types/modifier-type.entity';
 
@@ -16,6 +9,9 @@ export class Modifier {
 
   @Column()
   name: string;
+
+  @Column({ nullable: true })
+  shortName: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
