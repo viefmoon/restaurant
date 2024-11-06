@@ -12,6 +12,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { OrdersModule } from './orders/orders.module';
 import { AppGateway } from './app.gateway';
 import { ScheduleModule } from '@nestjs/schedule';
+import { PrinterService } from './printers/printers.service';
 
 @Module({
   imports: [
@@ -39,9 +40,10 @@ import { ScheduleModule } from '@nestjs/schedule';
     TablesModule,
     CategoriesModule,
     OrdersModule,
+    PrinterService,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
-  providers: [AppService, AppGateway],
+  providers: [AppService, AppGateway, PrinterService],
 })
 export class AppModule {}

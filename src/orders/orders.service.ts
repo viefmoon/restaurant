@@ -29,6 +29,7 @@ import axios from 'axios';
 import * as dotenv from 'dotenv';
 import { CreateOrderItemDto } from 'src/order_items/dto/create-order-item.dto';
 import { ProductVariant } from 'src/product_variants/product-variant.entity';
+import { PrinterService } from 'src/printers/printers.service';
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ export class OrdersService {
     private readonly orderItemService: OrderItemsService,
     private readonly appGateway: AppGateway,
     private readonly dataSource: DataSource,
+    private readonly printerService: PrinterService,
   ) {}
 
   async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -200,6 +202,11 @@ export class OrdersService {
         'Error al crear la orden',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+
+    if (completeOrder) {
+      // Imprimir el ticket
+      await this.printerService.printTicket(completeOrder);
     }
 
     return completeOrder;
