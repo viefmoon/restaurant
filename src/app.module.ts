@@ -13,7 +13,7 @@ import { OrdersModule } from './orders/orders.module';
 import { AppGateway } from './app.gateway';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrinterService } from './printers/printers.service';
-
+import { PrintersModule } from './printers/printers.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -40,7 +40,7 @@ import { PrinterService } from './printers/printers.service';
     TablesModule,
     CategoriesModule,
     OrdersModule,
-    PrinterService,
+    PrintersModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

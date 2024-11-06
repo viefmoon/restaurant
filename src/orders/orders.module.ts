@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PrintersModule } from '../printers/printers.module';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -43,6 +44,7 @@ import { OrderPrint } from 'src/order_prints/order-print.entity';
       OrderCounter,
       OrderPrint,
     ]),
+    PrintersModule,
   ],
   providers: [OrdersService, OrderItemsService, AppGateway],
   controllers: [OrdersController],
