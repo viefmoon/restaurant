@@ -206,7 +206,7 @@ export class OrdersService {
 
     if (completeOrder) {
       // Imprimir el ticket
-      await this.printerService.printTicket(completeOrder);
+      //await this.printerService.printTicket(completeOrder);
     }
 
     return completeOrder;
